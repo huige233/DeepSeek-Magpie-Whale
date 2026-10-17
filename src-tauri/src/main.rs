@@ -9,5 +9,13 @@
 
 /// 二进制程序入口：转发到库 crate 的统一启动逻辑。
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("--usage-hook") {
+        // Observational hooks must never block or start another GUI instance.
+        if let (Some(source), Some(event)) = (args.get(2), args.get(3)) {
+            let _ = ds_desktop_whale_lib::capture_usage_hook(source, event);
+        }
+        return;
+    }
     ds_desktop_whale_lib::run();
 }

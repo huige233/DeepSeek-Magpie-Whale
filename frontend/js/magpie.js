@@ -66,20 +66,20 @@
     DSW.dom.textBox.classList.remove("quota-mode");DSW.dom.textBox.classList.add("usage-mode");
     DSW.bubble.applyBubbleLines([
       {t:H.noticeTitle(n),s:"C"},
-      {t:H.number(n.tokens.input+n.tokens.output)+" tokens",s:"B"},
-      {t:"输入 "+H.number(n.tokens.input)+" · 输出 "+H.number(n.tokens.output)+"\n"+(n.cost==null?"费用未提供":H.noticeCost(n)),s:"P",w:true}
+      {t:H.noticeTotal(n),s:"B"},
+      {t:H.noticeDetail(n)+"\n"+(n.cost==null?"费用未提供":H.noticeCost(n)),s:"P",w:true}
     ]);
     for(const el of [DSW.dom.amountEl,DSW.dom.periodEl,DSW.dom.hintEl])el.style.fontSize="";
     fitText();
-    DSW.dom.textBox.title=H.noticeTitle(n)+"\n"+n.model+"\n缓存 "+H.number(n.tokens.cached)+" · 推理 "+H.number(n.tokens.reasoning)+"（已含）\n"+H.noticeCost(n);
+    DSW.dom.textBox.title=H.noticeTitle(n)+"\n"+n.model+"\n"+H.noticeBreakdown(n)+"\n"+H.noticeCost(n);
   }
   function show(n,manual=false){
     const previousBubble=!!DSW.flags.bubbleShown;
     dismiss();placement=settings.notificationPlacement==="above"?"above":"inside";
     if(placement==="above"){
       toast.replaceChildren();const close=line("button","×","usage-close");close.title="关闭提示";close.onclick=dismiss;
-      line("div",H.noticeTitle(n),"usage-eyebrow");line("strong",H.number(n.tokens.input+n.tokens.output)+" tokens","usage-total");
-      line("div","输入 "+H.number(n.tokens.input)+" · 输出 "+H.number(n.tokens.output),"usage-detail");
+      line("div",H.noticeTitle(n),"usage-eyebrow");line("strong",H.noticeTotal(n),"usage-total");
+      line("div",H.noticeDetail(n),"usage-detail");
       line("div",H.noticeCost(n),"usage-foot");toast.hidden=false;
       if(!place())inside(n);
     }else inside(n);
@@ -99,16 +99,16 @@
   async function poll(){
     if(stopped||!DSW.invoke)return;
     try{const result=await DSW.invoke("poll_companion");history=result.history||[];settings=result.settings||settings;
-      const events=(result.events||[]).filter(n=>{if(n.kind!=="turn"||!n.id||received.has(n.id))return false;received.add(n.id);return settings.notifications;});
+      const events=(result.events||[]).filter(n=>{if(!["turn","stage"].includes(n.kind)||!n.id||received.has(n.id))return false;received.add(n.id);return settings.notifications;});
       if(events.length){queue.push(...events);queue=queue.slice(-30);await refresh();next();}
       window.dispatchEvent(new CustomEvent("companion-status",{detail:result}));
     }catch(e){console.warn("用量监听暂不可用",String(e));}finally{if(!stopped)pollTimer=setTimeout(poll,2000);}
   }
   function stop(){stopped=true;clearTimeout(pollTimer);dismiss();queue=[];clearInterval(positionTimer);}
   const positionTimer=setInterval(()=>{if(active&&placement==="above"&&!place()){const n=active;cleanup();inside(n);active=n;DSW.flags.usageVisible=true;toastTimer=setTimeout(dismiss,(settings.notificationSeconds||12)*1000);}},100);
-  DSW.magpie={render,refresh,interrupt,fitText,history:()=>history,summary:()=>{const a=H.selected(accounts,settings.accountId),w=H.tightest(a);return{amount:error?"--":w?"剩余 "+w.remaining+"%":a?.balance||"--",countdown:w?shortWindow(w.name)+" · "+countdown(w.resetsAt):"重置时间未知"};},showRecent:()=>{if(history.length)show(history[0],true);else DSW.bubble.showDialogueLine("还没有整轮用量。请在设置中开启 Codex 读取，完成一轮对话后查看。");}};
+  DSW.magpie={render,refresh,interrupt,fitText,history:()=>history,summary:()=>{const a=H.selected(accounts,settings.accountId),w=H.tightest(a);return{amount:error?"--":w?"剩余 "+w.remaining+"%":a?.balance||"--",countdown:w?shortWindow(w.name)+" · "+countdown(w.resetsAt):"重置时间未知"};},showRecent:()=>{if(history.length)show(history[0],true);else DSW.bubble.showDialogueLine("还没有新用量。请在设置中选择 AI IDE 读取来源，完成对话后查看。");}};
   if(DSW.invoke)DSW.invoke("get_companion_settings").then(s=>{settings=s;H.applyFont(s,document);refresh();poll();});
-  window.__TAURI__?.event?.listen("companion-settings-changed",e=>{settings=e.payload;H.applyFont(settings,document);fitText();if(!settings.notifications){queue=[];dismiss();}refresh();});
+  window.__TAURI__?.event?.listen("companion-settings-changed",e=>{if(settings.codexEnabled!==e.payload.codexEnabled||JSON.stringify(settings.usageSources||{})!==JSON.stringify(e.payload.usageSources||{}))queue=[];settings=e.payload;H.applyFont(settings,document);fitText();if(!settings.notifications){queue=[];dismiss();}refresh();});
   window.__TAURI__?.event?.listen("app-quit",stop);window.__TAURI__?.event?.listen("widget-visibility",e=>{if(!e.payload)dismiss();});
   window.addEventListener("beforeunload",stop);
   document.addEventListener("companion-font-ready",fitText);

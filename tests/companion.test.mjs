@@ -45,7 +45,7 @@ test('unknown quota is never converted to zero and missing selected account is n
   assert.equal(H.windows({windows:[{name:'week'}]})[0].remaining,null);
   assert.equal(H.tightest({windows:[{name:'unknown'},{name:'week',used:99}]}).remaining,1);
   assert.equal(H.selected([{name:'one',provider:'x',last:true}],'missing'),null);
-  assert.equal(H.noticeCost({cost:null}),'未提供本轮费用');
+  assert.equal(H.noticeCost({cost:null}),'未提供费用');
 });
 test('font selection is CSS-quoted, bounded and falls back without dropping other settings',()=>{
   const c=runtime();vm.runInContext(source('companion-common.js'),c);

@@ -5,6 +5,8 @@ use serde_json::{json, Value};
 use std::{collections::{HashMap, HashSet, VecDeque}, fs::{self, File}, io::{BufRead, BufReader, Read, Seek, SeekFrom}, path::{Path, PathBuf}, sync::{Mutex, OnceLock}, time::Duration};
 use tauri::Emitter;
 use crate::infrastructure::system::paths::app_data_dir;
+#[path = "usage_sources.rs"]
+pub(crate) mod sources;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -22,9 +24,11 @@ pub struct Settings {
     pub component_sounds: HashMap<String, String>,
     pub character_sounds: HashMap<String, HashMap<String,String>>,
     pub character_sound_enabled: HashMap<String,bool>,
+    pub usage_sources: HashMap<String, sources::SourceSettings>,
+    pub character_lines: HashMap<String, HashMap<String, Vec<String>>>,
 }
 impl Default for Settings {
-    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new(), character_sounds: HashMap::new(), character_sound_enabled: HashMap::new() } }
+    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new(), character_sounds: HashMap::new(), character_sound_enabled: HashMap::new(), usage_sources: HashMap::new(), character_lines: HashMap::new() } }
 }
 fn settings_path() -> PathBuf { app_data_dir().join("magpie.json") }
 #[tauri::command]
@@ -34,6 +38,7 @@ pub fn get_companion_settings() -> Settings {
 #[tauri::command]
 pub fn save_companion_settings(app: tauri::AppHandle, mut settings: Settings) -> Result<Settings, String> {
     if settings.port == 0 { return Err("端口应为 1–65535".into()); }
+    sources::validate_settings(&mut settings)?;
     settings.notification_seconds = settings.notification_seconds.clamp(5, 120);
     if settings.notification_placement != "above" { settings.notification_placement = "inside".into(); }
     settings.font_scale = if settings.font_scale.is_finite() { settings.font_scale.clamp(0.8, 1.4) } else { 1.0 };
@@ -88,6 +93,7 @@ pub struct Notice {
     pub id: String, pub source: String, pub kind: String, pub model: String,
     pub tokens: Tokens, pub cost: Option<f64>, pub at: String, pub requests: u64,
     pub interrupted: bool,
+    #[serde(default)] pub usage_unavailable: bool,
     #[serde(skip)] pub session: String,
     #[serde(skip)] pub started: String,
     #[serde(skip)] pub response_ids: HashSet<String>,
@@ -152,7 +158,7 @@ impl CodexFile {
         self.active = false; self.records = Tokens::default(); self.legacy = Tokens::default(); self.has_records = false;
         if DateTime::parse_from_rfc3339(&at).map(|t| t.with_timezone(&Utc) < boot).unwrap_or(true) { return None; }
         if tokens.total() == 0 || self.subagent { return None; }
-        Some(Notice { id, source: "Codex".into(), kind: "turn".into(), model: self.model.clone(), tokens, cost: None, at, requests: 0, interrupted: event == "turn_aborted" || !p["error"].is_null(), session:self.session.clone(), started:self.started.clone(), response_ids:self.seen.clone() })
+        Some(Notice { usage_unavailable:false, id, source: "Codex".into(), kind: "turn".into(), model: self.model.clone(), tokens, cost: None, at, requests: 0, interrupted: event == "turn_aborted" || !p["error"].is_null(), session:self.session.clone(), started:self.started.clone(), response_ids:self.seen.clone() })
     }
     fn read(&mut self, path: &Path, boot: DateTime<Utc>) -> std::io::Result<Vec<Notice>> {
         let mut file = File::open(path)?;
@@ -189,13 +195,14 @@ impl CodexFile {
 }
 
 struct Monitor {
+    sources: sources::Sources,
     magpie_ready: bool, port: u16, codex_enabled: bool,
     files: HashMap<PathBuf, CodexFile>,
     history: VecDeque<Notice>, codex_boot: DateTime<Utc>, last_scan: std::time::Instant,
 }
 impl Default for Monitor {
     fn default() -> Self {
-        Self { magpie_ready: false, port: 0, codex_enabled: false, files: HashMap::new(), history: VecDeque::new(), codex_boot: Utc::now(), last_scan: std::time::Instant::now() - Duration::from_secs(60) }
+        Self { sources: sources::Sources::default(), magpie_ready: false, port: 0, codex_enabled: false, files: HashMap::new(), history: VecDeque::new(), codex_boot: Utc::now(), last_scan: std::time::Instant::now() - Duration::from_secs(60) }
     }
 }
 fn codex_home() -> PathBuf {
@@ -220,7 +227,7 @@ fn magpie_notice(row: &Value) -> Notice {
     let id = format!("magpie:{}:{}:{}:{}", at, string(row, "response_id"), row["route_id"], string(row, "session"));
     // Magpie's input excludes cache reads/writes, unlike Codex's inclusive input.
     let tokens = Tokens { input: num(row, "in") + num(row, "cache_read") + num(row, "cache_write"), output: num(row, "out"), cached: num(row, "cache_read"), reasoning: num(row, "reasoning") };
-    Notice { id, source: "Magpie".into(), kind: "request".into(), model: string(row, "model"), tokens,
+    Notice { usage_unavailable:false, id, source: "Magpie".into(), kind: "request".into(), model: string(row, "model"), tokens,
         cost: if row["priced"].as_bool() == Some(true) { row["cost"].as_f64() } else { None }, at, requests: 1,
         interrupted: row["status"].as_u64().map(|s| s >= 400).unwrap_or(false), session:String::new(), started:String::new(), response_ids:HashSet::new() }
 }
@@ -307,13 +314,15 @@ fn poll_local(settings: Settings, magpie: Result<Value, String>) -> Result<Value
             match file.read(path, boot) { Ok(mut items) => events.append(&mut items), Err(_) => { codex_error = Some("部分 Codex 日志暂不可读，将自动重试".into()); } }
         }
     }
+    let (mut other_events, source_status) = m.sources.poll(&settings);
+    events.append(&mut other_events);
     let mut magpie_error = None;
     match magpie {
         Ok(data) => {
             if let Some(rows) = data["rows"].as_array() {
                 // Gateway rows are accounting data, never turn-completion events.
                 // Only a native task_complete/turn_aborted creates a notification.
-                for notice in &mut events { attach_magpie_cost(notice, rows); }
+                for notice in &mut events { if notice.source == "Codex" { attach_magpie_cost(notice, rows); } }
                 m.magpie_ready = true;
 
             } else { magpie_error = Some("Magpie 用量接口缺少 rows 字段".to_string()); }
@@ -325,7 +334,7 @@ fn poll_local(settings: Settings, magpie: Result<Value, String>) -> Result<Value
     for event in &events { audit(json!({"stage":"complete","notice":event})); m.history.push_front(event.clone()); }
     while m.history.len() > 30 { m.history.pop_back(); }
     Ok(json!({ "events": if settings.notifications { events } else { vec![] }, "history": m.history,
-        "magpieError": magpie_error, "codexError": codex_error, "codexFiles": m.files.len(), "settings": settings }))
+        "magpieError": magpie_error, "codexError": codex_error, "codexFiles": m.files.len(), "sourceStatus":source_status, "settings": settings }))
 }
 
 #[cfg(test)]

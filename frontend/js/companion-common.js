@@ -21,10 +21,13 @@
     const mins=Math.ceil(ms/60000);
     return (mins>=1440 ? Math.floor(mins/1440)+"天 " : "") + Math.floor(mins%1440/60)+"小时 "+mins%60+"分后重置";
   }
-  function noticeTitle(n) { return n.source+" · "+(n.interrupted ? "已中断 / 失败" : n.kind==="turn" ? "本轮完成" : "请求完成"); }
-  function noticeCost(n) { return typeof n.cost==="number" ? "参考费用 $"+n.cost.toFixed(6) : "未提供本轮费用"; }
+  function noticeTitle(n) { return n.source+" · "+(n.interrupted ? "已中断 / 失败" : n.kind==="turn" ? "本轮完成" : "阶段 / 请求完成"); }
+  function noticeTotal(n) { return n.usageUnavailable?"Token 未提供":number(n.tokens.input+n.tokens.output)+" tokens"; }
+  function noticeDetail(n) { return n.usageUnavailable?"IDE 仅提供结束信号，不估算用量":"输入 "+number(n.tokens.input)+" · 输出 "+number(n.tokens.output); }
+  function noticeBreakdown(n) { return n.usageUnavailable?"IDE 未提供计数":"缓存 "+number(n.tokens.cached)+" · 推理 "+(n.source?.startsWith("CC Switch")?"来源未单列":number(n.tokens.reasoning))+"（来源提供时，已含）"; }
+  function noticeCost(n) { return typeof n.cost==="number" ? "参考费用 $"+n.cost.toFixed(6) : "未提供费用"; }
   function claimCompletionRice(settings,n,manual,claimed) {
-    if(manual||!settings.notifications||!settings.riceOnCompletion||n.kind!=="turn"||n.interrupted||!n.id||claimed.has(n.id))return false;
+    if(manual||!settings.notifications||!settings.riceOnCompletion||n.kind!=="turn"||n.usageUnavailable||n.interrupted||!n.id||claimed.has(n.id))return false;
     claimed.add(n.id);return true;
   }
   function applyFont(settings, doc) {
@@ -34,5 +37,5 @@
     doc.documentElement.style.setProperty("--companion-font-scale",String(Math.max(.8,Math.min(1.4,Number(settings.fontScale)||1))));
     if(doc.fonts)doc.fonts.load('700 18px '+JSON.stringify(family)).then(()=>doc.dispatchEvent(new Event("companion-font-ready"))).catch(()=>{});
   }
-  root.WhaleCompanion = {claimCompletionRice, applyFont, accountId, selected, windows, tightest, stale, number, reset, noticeTitle, noticeCost};
+  root.WhaleCompanion = {claimCompletionRice, applyFont, accountId, selected, windows, tightest, stale, number, reset, noticeTitle, noticeTotal, noticeDetail, noticeBreakdown, noticeCost};
 })(typeof window === "undefined" ? globalThis : window);

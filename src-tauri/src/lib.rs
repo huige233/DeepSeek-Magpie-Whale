@@ -23,6 +23,9 @@ mod infrastructure;
 mod shell;
 mod types;
 mod companion;
+pub fn capture_usage_hook(source: &str, event: &str) -> Result<(), String> {
+    companion::sources::capture_hook(source, event)
+}
 mod character;
 mod component_audio;
 mod physics;
@@ -103,6 +106,7 @@ pub fn run() {
     }
 
     let is_autostart = std::env::args().any(|a| a == AUTOSTART_FLAG);
+    let restore_session = std::env::args().any(|a| a == "--restore-session");
 
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -164,6 +168,7 @@ pub fn run() {
             physics::physics_feedback,
             physics::physics_cursor,
             companion::get_companion_settings,
+            companion::sources::export_usage_hook,
             companion::save_companion_settings,
             companion::get_magpie_quotas,
             companion::poll_companion,
@@ -245,7 +250,7 @@ pub fn run() {
         if let tauri::RunEvent::Ready = event {
             #[cfg(feature = "native-smoke")]
             native_smoke::start(app);
-            if application::registry::config().get().api_key.is_empty() || !is_autostart {
+            if !restore_session && (application::registry::config().get().api_key.is_empty() || !is_autostart) {
                 let _ = shell::window::ensure_config_window(app);
             }
 

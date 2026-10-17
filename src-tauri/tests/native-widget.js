@@ -8,6 +8,14 @@
     const settings=await invoke('get_companion_settings');
     await invoke('save_companion_settings',{settings:{...settings,codexEnabled:true,riceOnCompletion:true,fontFamily:'dsw-tutorial',fontScale:1.3}});
     const dataDir=await invoke('get_data_dir');
+    const beforeRoleLines=await invoke('get_companion_settings');
+    check(Object.keys(beforeRoleLines.usageSources).length===0,'new sources default disabled without touching IDEs');
+    await invoke('save_companion_settings',{settings:{...beforeRoleLines,characterLines:{'Claude-Chibi':{idle:['Native Claude line']},'Kimi-Chibi':{feed:['Native Kimi meal']}}}});
+    await wait(100);DSW.flags.widgetBody='Claude-Chibi';check(DSW.characters.pick('idle')==='Native Claude line','live custom role dialogue');
+    DSW.flags.widgetBody='Kimi-Chibi';check(DSW.characters.pick('feed')==='Native Kimi meal','live isolated role cue');
+    await invoke('save_companion_settings',{settings:beforeRoleLines});DSW.flags.widgetBody='小鲸鱼';
+    for(const source of ['cursor','trae'])check((await invoke('export_usage_hook',{source})).includes(source+'-hooks.example.json'),'hook export '+source);
+    await emit('smoke-report',{stage:'role-dialogue-and-hook-export',passed:true});
     const custom=await invoke('import_component_sound',{event:'pot_land',path:dataDir+'/test-anvil.wav'});
     check((await invoke('read_component_sound',{choice:custom})).startsWith('data:audio/wav;base64,'),'native sound import/read');
     await invoke('save_companion_settings',{settings:{...(await invoke('get_companion_settings')),componentSounds:{pot_land:custom}}});

@@ -1,6 +1,21 @@
 # DeepSeek Magpie Whale · Windows 桌宠
 
-## Magpie 交互版 2.7.1（2026-10-17）
+## Magpie 交互版 2.8.0（2026-10-17）
+
+### 多 IDE 读取与角色台词管理
+
+- 设置 → 额度概览 → AI IDE 用量来源：Claude Code、CC Switch、OpenCode、Cursor、Trae 独立开关、路径与 2–300 秒读取间隔。新来源默认关闭，已有 Codex、Magpie 和音效设置保持不变。启用/切换路径或阶段模式后只提示新事件，不补弹历史。
+- Claude Code：只读 `.claude/projects` JSONL（支持 `CLAUDE_CONFIG_DIR` 或自定义目录），按消息 ID 合并流式快照。整轮等待 `system/turn_duration`；`end_turn` 不足以排除 Hook 继续执行，因此不单凭它弹整轮提示。无此标记的版本可选每请求阶段模式。统计主会话记录，子代理不另行弹窗，也不宣称含未写入主记录的子代理用量。
+- OpenCode：只读 `~/.local/share/opencode/opencode.db`（支持 `XDG_DATA_HOME` 和自定义路径）；V1 聚合同一用户输入的工具循环至最终响应，V2 以 `idle` 消息为终态并包含该轮压缩请求；可选每请求阶段模式。V2 优先于迁移后冻结的 V1 表。缺少支持的结构/终态时显示诊断，不猜测结束。
+- CC Switch：只读 `~/.cc-switch/cc-switch.db` 的 `proxy_request_logs` 代理记录，仅作请求/阶段通知。排除导入的镜像会话，并跳过已启用原生读取的 Codex/Claude/OpenCode 来源，避免重复。按 `input_token_semantics` 区分输入是否已含缓存；没有来源定价时不把费用写成零。数据库不单列推理 Token 时无法拆分。不会读取供应商密钥、执行其用量脚本或修改 CC Switch 数据库。
+- Cursor / Trae：点击「导出 Hook 接入模板」，在 `data/integrations/` 获取 JSON，手动将 `hooks` 条目合并到 IDE 配置，**不要覆盖已有 hooks**。Cursor 使用 `beforeSubmitPrompt` / `stop`；Trae 使用 `UserPromptSubmit` / `Notification` 的 `idle_prompt`（不是可被阻断的 Stop）。Cursor 配置通常为 `~/.cursor/hooks.json`，TRAE 国内版为 `~/.trae-cn/hooks.json`，或项目 `.trae/hooks.json`。国际版请以客户端 Hook 设置显示的路径为准。移动便携目录后重新导出。模板导出不会自动修改 IDE 配置。
+- Hook 子进程仅保存来源、会话/轮次 ID、完成状态及可用计数，不保存提示词、回复、工具参数或密钥；以临时文件+重命名写入 `data/usage-events/<source>/`。官方事件并不保证提供 Token，缺失时明确显示「Token 未提供」，不显示虚假 0、不估算，也不触发白饭奖励。阶段通知同样不触发整轮奖励。记录仅保存在本机，可在关闭监听后清理。
+- 设置 → 气泡与台词 → 台词管理：选择七位角色之一，再选闲聊/摸头/害羞/生气/提醒/失落/回来/开饭/吃饱/疲惫，逐行编辑并保存。恢复默认只影响该角色的当前场景；肥鱼和原自定义台词列表独立保留。播放模式与间隔为公共设置。
+- 所有通知继续排队等待原台词结束，沿用气泡内/上方位置选项；默认整轮模式不因工具请求逐次提示。`--restore-session` 供更新后恢复运行使用，不强制打开设置或改变原隐藏状态。
+
+适配依据（只参考数据格式，未复制供应商脚本）：[Claude Code Hooks](https://code.claude.com/docs/en/hooks)、[Cursor Hooks](https://cursor.com/docs/hooks)、[TRAE Hook 配置](https://docs.trae.cn/ide_hook-configuration-reference)、[OpenCode](https://github.com/anomalyco/opencode)、[CC Switch](https://github.com/farion1231/cc-switch)。原桌宠与餐具交互的致谢见下文。客户端版本改变可能影响本地格式；自动化验证使用隔离合成日志/数据库，不等同于所有 IDE 的真人端到端测试。
+
+### 2.7.1 按压颜色修复
 
 2.7.1：七位 AI 娘普通点击只保留原立绘、压扁回弹和互动音效，不再切换有肤色/腮红差异的生成摸头图；害羞、生气、眨眼等独立状态照常保留。原肥鱼与其他自定义组行为不变。
 

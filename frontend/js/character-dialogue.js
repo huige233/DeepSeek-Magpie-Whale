@@ -88,8 +88,14 @@
     }
   };
   let enabled = true;
+  let overrides = {};
   const previous = new Map();
-  function lines(kind) { return enabled ? profiles[DSW.flags.widgetBody]?.[kind] : undefined; }
+  function lines(kind) {
+    const group=DSW.flags?.widgetBody;
+    if(!enabled||!Object.hasOwn(profiles,group||""))return undefined;
+    const custom=overrides[group]?.[kind];
+    return Array.isArray(custom)&&custom.length?custom:profiles[group]?.[kind];
+  }
   function pick(kind, fallback) {
     const choices = lines(kind);
     if (!choices?.length) return fallback;
@@ -100,8 +106,8 @@
     previous.set(key, index);
     return choices[index];
   }
-  function configure(settings) { enabled = settings?.characterDialogue !== false; }
+  function configure(settings) { enabled = settings?.characterDialogue !== false; overrides=settings?.characterLines||{};previous.clear(); }
   DSW.characters = { lines, pick, configure, profiles };
   DSW.invoke?.("get_companion_settings").then(configure).catch(() => {});
   window.__TAURI__?.event?.listen("companion-settings-changed", e => configure(e.payload));
-})(window.DSW);
+})(window.DSW=window.DSW||{});

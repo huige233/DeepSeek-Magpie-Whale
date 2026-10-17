@@ -1,4 +1,12 @@
-DeepSeek Magpie Whale 2.7.1 · Windows x64
+DeepSeek Magpie Whale 2.8.0 · Windows x64
+
+2.8.0 新增
+Claude Code、CC Switch、OpenCode、Cursor、Trae 分来源读取开关、阶段与间隔；新来源默认关闭。
+Claude Code / OpenCode 支持原生用量记录；CC Switch 仅阶段请求，并排除原生启用来源的重复记录。
+Cursor / Trae 需在设置中导出 Hook 模板后合并启用，不会自动改写 IDE 配置。官方未提供 Token 时显示未知，不能宣称完整用量。
+七位角色按角色+互动场景单独管理台词，肥鱼原台词与音效配置不覆盖。
+所有来源保留气泡避让；阶段或未知用量不奖励米饭。按压不变色修复保留。
+具体格式、限制、目录与参考仓库见 README.md；便携版仅包含干净程序，不包含个人密钥、设置、日志。
 
 2.7.1 修复
 七位 AI 娘普通点击只压扁回弹并播放原角色音效，不再切换会改变肤色、腮红的生成摸头图。

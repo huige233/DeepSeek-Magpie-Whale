@@ -7,6 +7,15 @@ function setup(){
   vm.runInNewContext(fs.readFileSync(new URL('../frontend/js/character-dialogue.js',import.meta.url),'utf8'),{window:{DSW},Map,Math});
   return DSW;
 }
+test('custom dialogue is isolated by role and cue; reset and disabled mode preserve defaults',()=>{
+  const d=setup(),original=d.characters.profiles['Claude-Chibi'].idle[0];
+  d.characters.configure({characterLines:{'Claude-Chibi':{idle:['My Claude'],pat:['Pet Claude']},'Kimi-Chibi':{idle:['My Kimi']}}});
+  assert.equal(d.characters.pick('idle'),'My Claude');assert.equal(d.characters.pick('pat'),'Pet Claude');
+  assert.equal(d.characters.pick('feed'),d.characters.profiles['Claude-Chibi'].feed[0]);
+  d.flags.widgetBody='Kimi-Chibi';assert.equal(d.characters.pick('idle'),'My Kimi');
+  d.flags.widgetBody='Claude-Chibi';d.characters.configure({characterLines:{'Claude-Chibi':{idle:[]}}});assert.equal(d.characters.pick('idle'),original);
+  d.characters.configure({characterDialogue:false,characterLines:{'Claude-Chibi':{idle:['hidden']}}});assert.equal(d.characters.pick('idle','legacy'),'legacy');
+});
 test('seven complete, distinct fictional dialogue profiles, no adjacent repeats',()=>{
   const d=setup(),seen=new Set();
   assert.equal(Object.keys(d.characters.profiles).length,7);
