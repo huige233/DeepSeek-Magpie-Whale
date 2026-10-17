@@ -42,7 +42,7 @@ window.DSW = window.DSW || {};
     DSW.dom.root.classList.add("dshwv-dragging");
 
     if (flags.mood === "disappointed") {
-      DSW.expression.setIcon(C.IMG_URL_PRESS);
+      DSW.expression.setIcon(DSW.expression.getPressIcon());
       DSW.dom.body.style.transform = C.SQUISH;
       flags.pressing = true;
       DSW.audio.playSlot("press");

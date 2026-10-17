@@ -50,7 +50,7 @@
         check(DSW.dom.img.src===frames[state],'native expression switch '+group+':'+state);
       }
       DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=true;DSW.expression.syncVisualState();await wait(50);
-      check(DSW.dom.img.src===frames.stroking,'native press frame '+group);DSW.flags.pressing=false;
+      check(DSW.dom.img.src===frames.main,'native press keeps original pixels '+group);DSW.flags.pressing=false;
       DSW.expression.syncVisualState();DSW.expression.enterShy();await wait(50);check(DSW.dom.img.src===frames.shy,'shy action '+group);
       DSW.expression.exitShy(false);DSW.expression.clearMoodTimers();DSW.expression.enterAngry();await wait(50);
       check(DSW.dom.img.src===frames.angry,'angry action '+group);DSW.expression.exitAngry();DSW.expression.clearMoodTimers();

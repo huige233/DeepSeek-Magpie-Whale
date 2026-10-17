@@ -237,9 +237,12 @@ try{
       await page.evaluate(()=>{__emit('physics-state',{count:1,feeding:true,message:'fallback',cue:'feed'});});
       assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].feed.some(t=>DSW.dom.textBox.textContent.includes(t))),'feeding dialogue '+group);
       await page.evaluate(()=>{DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.expression.clearMoodTimers();DSW.audio.pressDown();});
-      await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.stroking);
-      await page.screenshot({path:'tests/artifacts/'+group+'-pressed-2.7.png'});
+      await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.main);
+      assert.equal(await page.evaluate(()=>DSW.dom.body.style.transform),await page.evaluate(()=>DSW.C.SQUISH),'press still squishes without changing artwork '+group);
+      assert.equal(await page.evaluate(()=>getComputedStyle(DSW.dom.img).filter),'none','no press tint filter '+group);
+      await page.screenshot({path:'tests/artifacts/'+group+'-pressed-2.7.1.png'});
       await page.evaluate(()=>DSW.audio.pressUp());
+      await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.main);
       preview.push({group,sprites});
     }
     const gallery=await browser.newPage({viewport:{width:1340,height:1140}});

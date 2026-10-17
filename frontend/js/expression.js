@@ -60,6 +60,8 @@ window.DSW = window.DSW || {};
   }
 
   function getPressIcon() {
+    // A simple press deforms the original art, rather than swapping in a tinted generated face.
+    if (DSW.characters?.profiles[flags.widgetBody]) return getBaseIcon();
     return C.IMG_URL_PRESS;
   }
 
