@@ -157,6 +157,7 @@ window.DSW = window.DSW || {};
 
   // 渲染时段行（峰：红 / 谷：绿，数字随场景同色）。
   function renderPeriod() {
+    if (DSW.magpie) { DSW.magpie.render(); return; }
     if (!applyPeriodVisibility()) return;
     var info = DSWH.periodInfo(new Date());
     ensurePeriodDom();
@@ -188,6 +189,7 @@ window.DSW = window.DSW || {};
 
   // 渲染当前余额/用量到气泡。
   function render() {
+    if (DSW.magpie) { DSW.magpie.render(); return; }
     // 模块化气泡：气泡内容完全由用户配置的模块渲染，内置三行整层让位。
     // 值本身来自各模块各自的供应商（见 modular.js），与 state.balance 无关，
     // 因此这里直接交给模块化渲染器，不写入任何内置行。
@@ -237,6 +239,7 @@ window.DSW = window.DSW || {};
   // 供应商换了，上一个供应商的数值必须立刻作废。这一步要在 busy 早退**之前**做，
   // 否则切换时恰好有一次轮询在途，旧供应商的响应会先落地并显示出来。
   function refresh(manual, opts) {
+    if (DSW.magpie) return DSW.magpie.refresh(manual);
     if (opts && opts.sourceChanged) {
       invalidateBalance();
       // 立刻把「--」画出来：既不能等到新数据源取数回来才更新显示，

@@ -19,7 +19,7 @@ window.DSW = window.DSW || {};
   // 仅在点击鲸鱼本体时进入拖拽，气泡区域不响应。
   function onDocPointerDown(e) {
     if (e.target && e.target.closest) {
-      if (e.target.closest(".dshwv-bubble")) return;
+      if (e.target.closest(".dshwv-bubble, .whale-prop, .usage-toast")) return;
     }
     if (e.button !== 0 && e.pointerType === "mouse") return;
     if (!DSW.hit.isWhaleHit(e)) return;

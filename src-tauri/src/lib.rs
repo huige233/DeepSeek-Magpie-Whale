@@ -22,12 +22,15 @@ mod domain;
 mod infrastructure;
 mod shell;
 mod types;
+mod companion;
+mod physics;
+#[cfg(feature = "native-smoke")]
+mod native_smoke;
 
-use tauri::Manager;
+use tauri::{Manager, Emitter};
 
 use types::common::constants::{
     AUTOSTART_FLAG, CONFIG_WINDOW_LABEL, MENU_CONFIG, MENU_FEED, MENU_HIDE_WIDGET, MENU_QUIT_APP,
-    TOP_UP_URL,
 };
 
 /// 组合根装配：把基础设施的仓储实现注入应用层（幂等，启动时调用一次）。
@@ -123,6 +126,7 @@ pub fn run() {
             // （隐藏时后台服务照常运行，用户可从托盘「显示桌宠」唤回）。
             let widget_visible = !application::registry::config().get().widget.hidden;
             let widget = shell::window::create_widget_window(app.handle(), widget_visible)?;
+            physics::create(app.handle())?;
             if widget_visible {
                 let _ = widget.show();
             }
@@ -134,7 +138,10 @@ pub fn run() {
             // 隐藏桌宠 → 只隐藏窗口、后台不中断；退出程序 → 释放资源后直接退出。
             app.on_menu_event(|app_handle, event| match event.id.as_ref() {
                 MENU_FEED => {
-                    let _ = application::system::service::open_external(TOP_UP_URL);
+                    let _ = app_handle.emit_to("widget", "pet-action", "feed");
+                }
+                "pet_pat" | "pet_talk" | "pet_pot" | "pet_clear" | "pet_usage" => {
+                    let _ = app_handle.emit_to("widget", "pet-action", event.id.as_ref().trim_start_matches("pet_"));
                 }
                 MENU_CONFIG => {
                     let _ = shell::window::ensure_config_window(app_handle);
@@ -151,6 +158,15 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            physics::sync_physics,
+            physics::physics_feedback,
+            physics::physics_cursor,
+            companion::get_companion_settings,
+            companion::save_companion_settings,
+            companion::get_magpie_quotas,
+            companion::poll_companion,
+            companion::get_companion_history,
+            companion::record_usage_display,
             api::config_api::get_config,
             api::config_api::save_config,
             api::config_api::save_widget_config,
@@ -223,6 +239,8 @@ pub fn run() {
     app.run(move |app, event| {
         // 事件循环就绪后再创建配置窗口，避免在 setup 阶段与透明挂件窗口并发初始化导致白屏。
         if let tauri::RunEvent::Ready = event {
+            #[cfg(feature = "native-smoke")]
+            native_smoke::start(app);
             if application::registry::config().get().api_key.is_empty() || !is_autostart {
                 let _ = shell::window::ensure_config_window(app);
             }

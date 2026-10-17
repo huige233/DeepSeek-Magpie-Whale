@@ -223,6 +223,11 @@ window.DSW = window.DSW || {};
   /** 每秒只更新倒计时的文本节点：不重建 DOM，气泡内容不会闪烁。 */
   function tickCountdown() {
     if (!active || !hasCountdown()) return;
+    if (DSW.magpie) {
+      values.countdownLabel = DSW.magpie.summary().countdown;
+      if (containerEl) containerEl.querySelectorAll('[data-kind="countdown"] .dshw-btext').forEach(function (node) {node.textContent=values.countdownLabel;});
+      return;
+    }
     var info = DSWH.periodInfo(new Date());
     values.countdown = DSWH.fmtCountdown(info.target - Date.now());
     values.peak = info.isPeak;
@@ -240,6 +245,11 @@ window.DSW = window.DSW || {};
     if (!active || !DSW.invoke) return Promise.resolve();
     var jobs = [];
     usedSlugs().forEach(function (slug) {
+      if (DSW.magpie) {
+        values.balance[slug] = DSW.magpie.summary().amount;
+        values.today[slug] = PLACEHOLDER;
+        return;
+      }
       jobs.push(
         DSW.invoke("get_supplier_balance", { scope: "balance", slug: slug })
           .then(function (payload) {

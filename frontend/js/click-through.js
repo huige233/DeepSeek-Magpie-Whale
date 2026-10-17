@@ -14,6 +14,7 @@ window.DSW = window.DSW || {};
 
   // 判断坐标是否落在可交互区域（鲸鱼本体或已展开的气泡）。
   function isInteractiveAt(cx, cy) {
+    if (DSW.interactions && DSW.interactions.isInteractiveAt(cx, cy)) return true;
     if (DSW.hit.isWhaleHit({ clientX: cx, clientY: cy })) return true;
     if (flags.bubbleShown) {
       let el = null;

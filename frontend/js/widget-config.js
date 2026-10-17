@@ -76,6 +76,7 @@ window.DSW = window.DSW || {};
   function canShowAutoSpeech() {
     return !(
       flags.clickBubbleActive ||
+      flags.usageVisible || flags.feeding || flags.propDragging ||
       flags.bubbleShown ||
       flags.pressing ||
       (flags.drag && flags.drag.active)
@@ -376,18 +377,18 @@ window.DSW = window.DSW || {};
   }
 
   // 调度下一条台词。
-  function scheduleNextDialogue() {
+  function scheduleNextDialogue(retryMs) {
     if (flags.dialogueTimer) {
       clearTimeout(flags.dialogueTimer);
       flags.dialogueTimer = null;
     }
     if (!flags.dialogueLines.length) return;
-    const delay = nextDialogueDelayMs();
+    const delay = typeof retryMs === "number" ? retryMs : nextDialogueDelayMs();
     flags.dialogueTimer = setTimeout(function () {
       flags.dialogueTimer = null;
       // 有用户交互或气泡占用时顺延，不抢占当前反馈。
       if (!canShowAutoSpeech()) {
-        scheduleNextDialogue();
+        scheduleNextDialogue(1000);
         return;
       }
       const line = pickDialogueLine();

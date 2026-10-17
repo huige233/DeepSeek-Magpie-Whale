@@ -551,6 +551,7 @@
 
   // 拉取余额概览并刷新配置页顶部摘要。
   function refreshBalance() {
+    if (window.MAGPIE_EDITION) return Promise.resolve(null);
     const requestSeq = ++balanceRequestSeq;
     // 余额失败已内联展示在余额卡片，30 秒轮询不弹窗，避免反复打断用户。
     return callApi("get_balance", undefined, { silent: true })

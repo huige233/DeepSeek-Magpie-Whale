@@ -1,4 +1,44 @@
-# DS 小鲸鱼 · 独立 Windows 桌面版
+# DeepSeek Magpie Whale · Windows 桌宠
+
+## Magpie 交互版 2.3.0（2026-10-17）
+
+- 点击额度保留原版三行气泡，字体有边界保护。
+- 配置 > 气泡与台词中可选择「使用教程同款」内置字体（星期八de電子日記 / XQBDDZRJ）、系统字体或输入字体名称，字号 80%–140%，实时应用。
+- 只有 Codex 整轮完成／中断触发一次通知；中间请求、工具调用不提示，原生子代理不另弹通知。
+- 可选气泡内／气泡上方展示；自动提示排队，不压住当前台词。空间不足自动回到气泡内。
+- 白饭从当前显示器顶部落到肥鱼前方，点击才吃；碰头、拖放和等待均不会自动吃。吃光后留下可拖动的空铁盆。
+- 铁盆采用 VK-1 的固定头顶锚点与 2/3 盆高层间距，关闭已佩戴盆的重力，逐帧跟随移动／翻转／缩放；上层后画，移除下层自动补位。
+- 物理层独立于原 625px 桌宠窗口，保持原拖拽吸附和屏幕位置。隐藏、清空、切换显示器会清理餐具。
+- Magpie 额度、Codex 日志均只读。不伪造订阅百分比扣减；不把不完整价格当整轮费用。
+- 保留原 data；不读取认证文件，不改账号路由。详见 RELEASE-NOTES.txt。
+
+验证：`cargo test --lib`、`node --test tests/companion.test.mjs`。
+构建：`cd src-tauri`，`cargo build --release --features tauri/custom-protocol`。前端素材嵌入 EXE。
+
+原生集成测试（仅隔离目录）：`cargo build --features tauri/custom-protocol,native-smoke`。
+将测试 EXE 放进独立目录，并将 CODEX_HOME 指向该目录中的测试子目录，以 `--whale-smoke` 启动。
+测试读取真实 WebView/IPC/日志解析路径，结果保存在测试 `data/native-smoke.jsonl`；测试只写隔离会话。
+正式构建不启用 native-smoke，因此不含此测试入口。
+
+## 借鉴与素材来源
+
+本项目是社区修改版，不是下列上游项目的官方发行版。保留上游版权及许可声明。
+
+| 来源 | 本项目使用 / 借鉴的部分 |
+| --- | --- |
+| [MeteorNOX/DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) | 主要代码基础：`For–WinDesktop` 分支的 Tauri 桌宠、原有气泡和设置系统、图片与内置字体；参考 Codex 用量展示思路。原代码许可证见 `LICENSE`。 |
+| [VKmich16/VK-1](https://github.com/VKmich16/VK-1) | `windows/dsh_pet.ps1` 的头顶铁盆锚定、2/3 盆高间距、堆叠次序及补位思路；米饭、铁盆和喂食音效素材。保留 `frontend/assets/feeding/LICENSE-VK1.txt`（MIT）。本版按用户需求改为点击才喂食，不采用超时自动吸食。 |
+| [yetone/magpie](https://github.com/yetone/magpie) | 参考本机 `/v1/magpie/quotas` 和用量记录接口的数据结构；本项目是只读客户端，不修改 Magpie 账号和路由。 |
+
+上游还包含 cc-switch 供应商预设和 logo。图片、字体、音效、商标等第三方资源权利归原权利人，不因本项目代码许可证而变更。教程字体沿用上游 `font.woff2`，字体内部标识为 XQBDDZRJ，版权元数据为 NIPPER (WUHAN) TECHNOLOGY CO.,LTD.；代码 MIT 声明不构成额外字体商用授权。
+
+## 测试与隐私
+
+`node --test tests/companion.test.mjs`；安装 Playwright 测试依赖后可执行 `node tests/browser.mjs`（使用本机 Edge）。截图写入已忽略的 `tests/artifacts/`。原生烟测只允许隔离的 CODEX_HOME。
+
+可通过环境变量 `WHALE_USAGE_AUDIT=1` 临时开启本地通知验证记录 `data/usage-audit.jsonl`，只记录用量计数、事件标识和展示位置，不记录对话内容或密钥。默认关闭，日志约 1 MiB 轮换。不要上传个人 `data/`、Codex 会话、环境变量文件、烟测数据或此验证日志。
+
+以下为原版功能说明；本 Magpie 分支隐藏原版供应商路由入口，余额与用量以本节说明为准。
 
 > DS Desktop Whale · Standalone Windows Desktop Edition · v2.0.0
 

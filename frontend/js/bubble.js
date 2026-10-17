@@ -51,6 +51,7 @@ window.DSW = window.DSW || {};
         el.style.color = "";
       }
     }
+    if (DSW.magpie) DSW.magpie.fitText();
   }
 
   // 设置提示行文字（直接赋值，无渐显动画）。
@@ -131,6 +132,8 @@ window.DSW = window.DSW || {};
 
   // 展示余额气泡。
   function showBubble() {
+    if (DSW.magpie) DSW.magpie.interrupt();
+    DSW.dom.textBox.classList.remove("usage-mode");
     if (flags.bubbleTimer) {
       clearTimeout(flags.bubbleTimer);
       flags.bubbleTimer = null;
@@ -150,6 +153,7 @@ window.DSW = window.DSW || {};
 
   // 隐藏气泡。
   function hideBubble() {
+    if (DSW.magpie) DSW.magpie.interrupt();
     if (flags.bubbleTimer) {
       clearTimeout(flags.bubbleTimer);
       flags.bubbleTimer = null;
@@ -162,10 +166,15 @@ window.DSW = window.DSW || {};
     flags.clickBubbleActive = false;
     if (wasShown) exitText();
     DSW.dom.bubbleBox.classList.remove("dshwv-bubble-open");
+    // A balance click pauses this timer; always re-arm it when the bubble closes.
+    if (DSW.widgetConfig) DSW.widgetConfig.scheduleNextDialogue();
   }
 
   // 展示一条台词（居中样式）。
   function showDialogueLine(line) {
+    if (DSW.magpie) DSW.magpie.interrupt();
+    DSW.dom.textBox.classList.remove("quota-mode", "usage-mode");
+    [DSW.dom.amountEl, DSW.dom.periodEl, DSW.dom.hintEl].forEach(el => { el.style.fontSize = ""; });
     flags.clickBubbleActive = false;
     const lines = singleCenter("A", line, "", true);
     flags.bubbleRandomActive = true;

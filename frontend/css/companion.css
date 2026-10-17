@@ -1,0 +1,26 @@
+.usage-toast{position:fixed;z-index:10020;box-sizing:border-box;padding:17px 20px;border:1px solid #b5cee3;border-radius:19px;background:linear-gradient(135deg,#fff 45%,#eaf4fc);color:#203856;box-shadow:0 6px 20px #172b4b1f;font-family:var(--companion-font,"Microsoft YaHei UI",sans-serif);pointer-events:auto;user-select:text}
+.usage-toast[hidden]{display:none}.usage-eyebrow{font-size:11px;font-weight:700;color:#437c90;letter-spacing:1px}.usage-total{display:block;font-size:23px;margin:5px 0;font-variant-numeric:tabular-nums;letter-spacing:-.6px}
+.usage-model{font-size:12px;margin-bottom:10px;overflow-wrap:anywhere}.usage-detail{font-size:11px;line-height:1.7}.usage-foot{font-size:10px;color:#64788c;margin-top:6px}.usage-close{position:absolute;right:8px;top:6px;border:0;background:transparent;font-size:22px;color:#678;cursor:pointer}
+.companion-panel{margin-bottom:16px}.companion-panel .companion-note{font-size:12px;line-height:1.7;color:var(--muted,#65758a);margin:8px 0}.companion-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.companion-tools button,.companion-panel select,.companion-panel input[type=number]{border:1px solid #b5c6d7;border-radius:9px;padding:8px 11px;background:var(--card-bg,#fff);color:inherit;font:inherit}.companion-tools button{cursor:pointer}.companion-panel select{width:100%;margin:10px 0}.companion-toggle{display:flex;gap:9px;align-items:center;margin:12px 0;font-size:13px}.companion-toggle input{accent-color:#35669d}.companion-accounts{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px;margin:12px 0}.companion-account{border:1px solid #ccd9e6;border-radius:12px;padding:14px;background:linear-gradient(130deg,#89b9d60a,#7c97bc16)}.companion-account.is-selected{border-color:#4c89ae}.companion-account h3{font-size:14px;margin:0 0 5px}.companion-account small{font-size:11px;opacity:.7;overflow-wrap:anywhere}.companion-window{margin-top:12px;font-size:12px}.companion-window progress{display:block;width:100%;height:6px;margin:6px 0;accent-color:#4c8da0}.companion-window em{font-size:11px;font-style:normal;opacity:.7}.companion-status{font-size:12px;line-height:1.7;color:#557186;white-space:pre-line}.companion-status.is-error{color:#b45938}.companion-history{font-size:12px;line-height:1.8;border-top:1px solid #ccd9e6;margin-top:14px;padding-top:10px;overflow-wrap:anywhere}.companion-history article{padding:8px 0;border-bottom:1px solid #ccd9e655}.companion-history strong{display:block}.companion-port{width:90px}
+@media(prefers-reduced-motion:reduce){.whale-heart{animation:none}.whale-prop.eating img{transition:none}}
+[hidden]{display:none!important}.companion-tabs{display:flex;gap:5px;margin:0 0 16px;border:1px solid #ccd9e6;padding:5px;border-radius:12px;background:#7c97bc0c}.companion-tabs button{flex:1;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12px;padding:9px 3px;cursor:pointer}.companion-tabs button.is-active{background:#31577d;color:white;box-shadow:0 2px 5px #20385620}
+
+/* Keep every default line inside the original ellipse at all pet scales. */
+.dshwv-text{width:140px;max-height:88px;overflow:hidden;box-sizing:border-box;font-family:var(--companion-font,"Microsoft YaHei UI",sans-serif)}
+.dshwv-text>div{max-width:100%;box-sizing:border-box}
+.dshwv-text.quota-mode>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0;line-height:1.25}
+.dshwv-text.quota-mode .dshwv-amount{font-size:25px;font-weight:800}
+.dshwv-text.quota-mode .dshwv-hint{font-size:11px;margin-top:5px}
+.dshwv-text.quota-mode .dshwv-period{font-size:10px;margin-top:3px;font-weight:600}
+.dshwv-text .dshwv-wrap{font-size:calc(13px * var(--companion-font-scale,1));line-height:1.35;max-width:140px;overflow-wrap:anywhere;letter-spacing:0}
+.dshwv-text.usage-mode{display:flex;flex-direction:column;width:144px;max-height:88px;gap:4px}
+.dshwv-text.usage-mode .dshwv-hint{order:0;font-size:calc(10px * var(--companion-font-scale,1));line-height:1.25;margin:0;font-weight:600}
+.dshwv-text.usage-mode .dshwv-amount{order:1;font-size:calc(20px * var(--companion-font-scale,1));line-height:1.15;white-space:nowrap;letter-spacing:-.5px}
+.dshwv-text.usage-mode .dshwv-period{order:2;font-size:calc(8px * var(--companion-font-scale,1));line-height:1.4;white-space:pre-line;margin:0;font-weight:500;overflow-wrap:anywhere}
+
+.companion-font-input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #b5c6d7;border-radius:9px;background:var(--card-bg,#fff);color:inherit;margin-top:8px}
+.whale-font-preview{font-family:var(--companion-font,"Microsoft YaHei UI",sans-serif);font-size:calc(16px * var(--companion-font-scale,1));padding:20px;background:#8bb9d61a;border-radius:12px;overflow-wrap:anywhere}
+.usage-toast .usage-total{font-size:calc(23px * var(--companion-font-scale,1));overflow-wrap:anywhere}
+.usage-toast .usage-eyebrow,.usage-toast .usage-detail{font-size:calc(11px * var(--companion-font-scale,1))}
+.usage-toast .usage-foot{font-size:calc(10px * var(--companion-font-scale,1))}
+@font-face{font-family:'dsw-tutorial';src:url('../assets/fonts/font.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}

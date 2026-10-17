@@ -207,6 +207,7 @@ window.DSWH = window.DSWH || {};
 
   /** 倒计时模块的展示文本（预览与挂件共用，避免两处走样）。 */
   function countdownText(values) {
+    if (values && typeof values.countdownLabel === "string") return values.countdownLabel;
     var time = (values && values.countdown) || "";
     return time ? (values.peak ? "峰：" : "谷：") + time : "峰谷：--";
   }

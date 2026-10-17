@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "DS Desktop Whale",
-  "mainBinaryName": "DS Desktop Whale",
-  "version": "2.0.0",
+  "productName": "DeepSeek Magpie Whale",
+  "mainBinaryName": "DeepSeek-Magpie-Whale",
+  "version": "2.3.0",
   "identifier": "com.dsw.whale",
   "build": {
     "frontendDist": "../frontend"

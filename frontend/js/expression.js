@@ -273,6 +273,10 @@ window.DSW = window.DSW || {};
   }
 
   function syncExhaustedMode() {
+    if (state.balance === null || state.balance === undefined) {
+      exitExhausted();
+      return;
+    }
     if (!flags.exhaustedModeEnabled) {
       exitExhausted();
       return;

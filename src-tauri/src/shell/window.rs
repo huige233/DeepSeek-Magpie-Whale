@@ -172,7 +172,7 @@ pub fn quit_app(app: &AppHandle) {
         std::thread::sleep(std::time::Duration::from_millis(VISIBILITY_PAINT_GRACE_MS));
         let _ = handle.emit(EVENT_APP_QUIT, ());
         std::thread::sleep(std::time::Duration::from_millis(QUIT_CLEANUP_GRACE_MS));
-        for label in [WIDGET_WINDOW_LABEL, CONFIG_WINDOW_LABEL] {
+        for label in [WIDGET_WINDOW_LABEL, CONFIG_WINDOW_LABEL, "physics"] {
             if let Some(window) = handle.get_webview_window(label) {
                 let _ = window.destroy();
             }

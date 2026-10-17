@@ -53,7 +53,7 @@ pub const MENU_OPEN_CONFIG: &str = "open_config";
 pub const MENU_SHOW_WIDGET: &str = "show_widget";
 /// 托盘菜单项：退出。
 pub const MENU_QUIT: &str = "quit";
-/// 挂件右键菜单项：喂养（打开充值页）。
+/// 挂件右键菜单项：铁盘白饭喂食。
 pub const MENU_FEED: &str = "menu_feed";
 /// 挂件右键菜单项：打开配置。
 pub const MENU_CONFIG: &str = "menu_config";
@@ -61,8 +61,6 @@ pub const MENU_CONFIG: &str = "menu_config";
 pub const MENU_HIDE_WIDGET: &str = "menu_hide_widget";
 /// 挂件右键菜单项：退出程序（释放资源后直接退出）。
 pub const MENU_QUIT_APP: &str = "menu_quit_app";
-/// 充值页地址（右键菜单「喂养」）。
-pub const TOP_UP_URL: &str = "https://platform.deepseek.com/top_up";
 
 // ---------------------------------------------------------------------------
 // 系统与启动

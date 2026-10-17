@@ -35,3 +35,10 @@ scripts/
 
 # ---- 模型 ----
 BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx
+
+# Personal state and local test artifacts
+data/
+tests/artifacts/
+*.jsonl
+*.exe
+*.zip

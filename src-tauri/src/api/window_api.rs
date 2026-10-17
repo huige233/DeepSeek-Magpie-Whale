@@ -154,7 +154,17 @@ fn save_current_widget_position(window: &WebviewWindow, anchors: (String, String
 fn show_context_menu_inner(window: &WebviewWindow) -> AppResult<()> {
     use tauri::menu::{Menu, MenuItem};
 
-    let feed = MenuItem::with_id(window, MENU_FEED, "喂养", true, None::<&str>)
+    let feed = MenuItem::with_id(window, MENU_FEED, "喂食 · 铁盘大白饭", true, None::<&str>)
+        .map_err(|e| AppError::external(e.to_string()))?;
+    let pat = MenuItem::with_id(window, "pet_pat", "摸摸大肥鱼", true, None::<&str>)
+        .map_err(|e| AppError::external(e.to_string()))?;
+    let talk = MenuItem::with_id(window, "pet_talk", "说句话", true, None::<&str>)
+        .map_err(|e| AppError::external(e.to_string()))?;
+    let pot = MenuItem::with_id(window, "pet_pot", "再顶一只铁盆 · 可堆叠", true, None::<&str>)
+        .map_err(|e| AppError::external(e.to_string()))?;
+    let clear = MenuItem::with_id(window, "pet_clear", "收拾餐具", true, None::<&str>)
+        .map_err(|e| AppError::external(e.to_string()))?;
+    let usage = MenuItem::with_id(window, "pet_usage", "查看最近用量", true, None::<&str>)
         .map_err(|e| AppError::external(e.to_string()))?;
     let config = MenuItem::with_id(window, MENU_CONFIG, "打开配置", true, None::<&str>)
         .map_err(|e| AppError::external(e.to_string()))?;
@@ -162,7 +172,7 @@ fn show_context_menu_inner(window: &WebviewWindow) -> AppResult<()> {
         .map_err(|e| AppError::external(e.to_string()))?;
     let quit = MenuItem::with_id(window, MENU_QUIT_APP, "退出程序", true, None::<&str>)
         .map_err(|e| AppError::external(e.to_string()))?;
-    let menu = Menu::with_items(window, &[&feed, &config, &hide, &quit])
+    let menu = Menu::with_items(window, &[&feed, &pat, &talk, &pot, &clear, &usage, &config, &hide, &quit])
         .map_err(|e| AppError::external(e.to_string()))?;
 
     window
