@@ -17,6 +17,20 @@ pub fn start(app: &tauri::AppHandle) {
         if let Some(w)=host.get_webview_window("physics") {
             let geometry=json!({"nativeGeometry":{"position":w.outer_position().ok(),"size":w.inner_size().ok(),"scale":w.scale_factor().ok(),"visible":w.is_visible().ok()}});
             writeln!(f,"{geometry}").unwrap();
+            #[cfg(windows)]
+            if let Some(pet)=host.get_webview_window("widget") {
+                use windows::Win32::UI::WindowsAndMessaging::{GetWindow,GW_OWNER,GW_HWNDPREV};
+                use windows::Win32::Foundation::HWND;
+                let ph=HWND(pet.hwnd().unwrap().0);let wh=HWND(w.hwnd().unwrap().0);
+                let owner=unsafe{GetWindow(wh,GW_OWNER)}.ok()==Some(ph);
+                let mut above=false;let mut current=ph;
+                for _ in 0..1000 {
+                    let Ok(previous)=(unsafe{GetWindow(current,GW_HWNDPREV)}) else {break;};
+                    if previous==wh {above=true;break;}
+                    if previous.0.is_null(){break;}current=previous;
+                }
+                writeln!(f,"{}",json!({"nativeLayering":{"ownedByPet":owner,"abovePet":above,"visible":w.is_visible().unwrap_or(false)}})).unwrap();
+            }
         }
     });
     app.listen("smoke-fixture", move |event| {
@@ -47,4 +61,3 @@ pub fn start(app: &tauri::AppHandle) {
         let _=handle.emit("smoke-running",true);
     });
 }
-

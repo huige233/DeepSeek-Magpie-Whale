@@ -126,7 +126,7 @@ pub fn run() {
             // （隐藏时后台服务照常运行，用户可从托盘「显示桌宠」唤回）。
             let widget_visible = !application::registry::config().get().widget.hidden;
             let widget = shell::window::create_widget_window(app.handle(), widget_visible)?;
-            physics::create(app.handle())?;
+            physics::create(app.handle(), &widget)?;
             if widget_visible {
                 let _ = widget.show();
             }

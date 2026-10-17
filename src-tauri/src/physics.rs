@@ -3,8 +3,10 @@ use serde::Deserialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WebviewWindowBuilder, WebviewUrl};
 
-pub fn create(app: &AppHandle) -> tauri::Result<()> {
+pub fn create(app: &AppHandle, owner: &WebviewWindow) -> tauri::Result<()> {
     let overlay = WebviewWindowBuilder::new(app, "physics", WebviewUrl::App("html/physics.html".into()))
+        // Windows owned popups stay above their owner even when the pet gains focus.
+        .parent(owner)?
         .title("Whale tableware").transparent(true).decorations(false).shadow(false)
         .always_on_top(true).skip_taskbar(true).focused(false).resizable(false)
         .visible(false).inner_size(625.0, 625.0).build()?;

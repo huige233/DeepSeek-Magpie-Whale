@@ -104,7 +104,10 @@ try{
   assert.equal(await physics.locator('.tableware.rice').count(),1,'no idle auto feeding');
   await physics.screenshot({path:'tests/artifacts/rice-front-2.3.png'});
   await physics.locator('.tableware.rice').click();
-  await physics.waitForTimeout(2000);
+  await physics.waitForTimeout(750);
+  assert.ok(await physics.evaluate(()=>{const p=WhalePhysics.bodies.find(p=>p.kind==='rice');return p.bite>=1&&p.el.querySelector('.rice-food').style.clipPath!==''&&p.el.querySelector('.rice-basin').style.clipPath==='';}),'only rice is consumed, metal bowl remains intact');
+  await physics.screenshot({path:'tests/artifacts/eating-2.3.png'});
+  await physics.waitForTimeout(1250);
   assert.equal(await physics.locator('.tableware.pot').count(),4);
   assert.ok(await physics.evaluate(()=>WhalePhysics.bodies.slice(0,3).every((p,i)=>p.onHead&&Math.abs(p.y-(WhalePhysics.head().y-p.h-i*p.h*2/3))<.01)));
   const layers=await physics.evaluate(()=>WhalePhysics.bodies.slice(0,3).map(p=>Number(p.el.style.zIndex)));
