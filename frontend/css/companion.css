@@ -20,6 +20,9 @@
 .dshwv-text.usage-mode .dshwv-period{order:2;font-size:calc(8px * var(--companion-font-scale,1));line-height:1.4;white-space:pre-line;margin:0;font-weight:500;overflow-wrap:anywhere}
 
 .companion-font-input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #b5c6d7;border-radius:9px;background:var(--card-bg,#fff);color:inherit;margin-top:8px}
+#companionFontList{box-sizing:border-box;min-height:210px;background-image:none;padding:6px;white-space:normal}
+#companionFontList option{padding:6px 9px;overflow-wrap:anywhere}
+#companionFontSearch{margin-bottom:12px}
 .whale-font-preview{font-family:var(--companion-font,"Microsoft YaHei UI",sans-serif);font-size:calc(16px * var(--companion-font-scale,1));padding:20px;background:#8bb9d61a;border-radius:12px;overflow-wrap:anywhere}
 .usage-toast .usage-total{font-size:calc(23px * var(--companion-font-scale,1));overflow-wrap:anywhere}
 .usage-toast .usage-eyebrow,.usage-toast .usage-detail{font-size:calc(11px * var(--companion-font-scale,1))}

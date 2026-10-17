@@ -28,6 +28,7 @@ pub fn capture_usage_hook(source: &str, event: &str) -> Result<(), String> {
 }
 mod character;
 mod component_audio;
+mod system_fonts;
 mod physics;
 #[cfg(feature = "native-smoke")]
 mod native_smoke;
@@ -164,6 +165,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            system_fonts::list_system_fonts,
             physics::sync_physics,
             physics::physics_feedback,
             physics::physics_cursor,

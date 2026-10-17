@@ -51,6 +51,12 @@
     <label for="companionFont">字体名称（可输入已安装的字体）</label>
     <input id="companionFont" class="companion-font-input" list="companionFonts" maxlength="100" placeholder="Microsoft YaHei UI">
     <datalist id="companionFonts"><option value="dsw-tutorial">使用教程同款 · 星期八de電子日記</option><option value="Microsoft YaHei UI">微软雅黑</option><option value="DengXian">等线</option><option value="SimHei">黑体</option><option value="SimSun">宋体</option><option value="KaiTi">楷体</option><option value="FangSong">仿宋</option></datalist>
+    <label for="companionFontSearch">搜索已安装字体（支持中文名 / 英文名）</label>
+    <input id="companionFontSearch" class="companion-font-input" type="search" placeholder="例如：Aa、瓶盖、微软雅黑">
+    <label for="companionFontList">本机字体列表 · 选择后自动保存</label>
+    <select id="companionFontList" size="8" disabled aria-describedby="companionFontListStatus"></select>
+    <div class="companion-tools"><button id="companionFontsRefresh" type="button">刷新已安装字体</button><span id="companionFontListStatus" class="companion-status" role="status">正在读取本机字体…</span></div>
+    <p class="companion-note">只读取 Windows 已安装字体，不上传、不复制字体文件。新装字体后可刷新。列表加载和搜索不会更改当前字体；选择后在下方预览。</p>
     <div class="companion-tools"><button id="companionTutorialFont" type="button">使用教程同款字体</button></div>
     <div class="companion-tools"><label>字号比例 <input id="companionFontScale" type="number" min="80" max="140" step="5" value="100"> %</label><button id="companionFontReset" type="button">恢复默认字体</button></div>
     <p class="whale-font-preview">大肥鱼吃饭啦 · 12,345 tokens · 剩余 80%</p>
@@ -163,9 +169,41 @@
   ["characterDialogue","companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
   for(const key of Object.keys(sources))for(const prefix of ["source-","sourceMode-","sourcePath-","sourceInterval-"])$(prefix+key).onchange=save;
   function previewFont(){H.applyFont({fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100},document);}
-  $("companionFont").oninput=previewFont;$("companionFontScale").oninput=previewFont;
-  $("companionFontReset").onclick=()=>{$("companionFont").value="Microsoft YaHei UI";$("companionFontScale").value=100;previewFont();save();};
-  $("companionTutorialFont").onclick=()=>{$("companionFont").value="dsw-tutorial";previewFont();save();};
+  let installedFonts=[],fontListLoaded=false,fontListLoading=false,fontListError="";
+  function renderFontList(){
+    const query=$("companionFontSearch").value.trim().toLocaleLowerCase(),current=$("companionFont").value;
+    const choices=[{family:"dsw-tutorial",label:"使用教程同款 · 星期八de電子日記（内置）",aliases:["XQBDDZRJ","星期八de電子日記"]},...installedFonts];
+    if(current&&!choices.some(f=>f.family===current||f.aliases?.includes(current)))choices.push({family:current,label:current+(fontListLoaded?"（当前设置 · 未在列表中找到）":"（当前设置）"),aliases:[]});
+    const filtered=choices.filter(f=>[f.family,f.label,...(f.aliases||[])].some(s=>String(s||"").toLocaleLowerCase().includes(query)));
+    const list=$("companionFontList");list.replaceChildren();
+    for(const font of filtered){
+      const option=new Option(font.label||font.family,font.family);
+      option.title=(font.aliases||[]).join(" / ");
+      option.selected=font.family===current||font.aliases?.includes(current);
+      list.add(option);
+    }
+    if(!filtered.some(f=>f.family===current||f.aliases?.includes(current)))list.selectedIndex=-1;
+    list.disabled=!settings||!filtered.length;
+    $("companionFontListStatus").textContent=fontListLoading?"正在读取本机字体…":fontListError?"读取失败，可重试；仍可手动输入字体。"+(fontListLoaded?"保留上次列表。":""):(fontListLoaded?`已读取 ${installedFonts.length} 个字体家族 · 当前匹配 ${filtered.length} 项（含内置 / 当前设置）`:"等待读取本机字体");
+  }
+  async function loadSystemFonts(){
+    if(fontListLoading)return;
+    fontListLoading=true;$("companionFontsRefresh").disabled=true;renderFontList();
+    try{
+      const fonts=await invoke("list_system_fonts");
+      if(!Array.isArray(fonts))throw new Error("Invalid font list");
+      const seen=new Set();
+      installedFonts=fonts.filter(f=>typeof f?.family==="string"&&f.family&&!seen.has(f.family)&&seen.add(f.family)).sort((a,b)=>a.family.localeCompare(b.family,"zh-CN"));
+      fontListLoaded=true;fontListError="";
+      $("companionFonts").replaceChildren(new Option("使用教程同款 · 星期八de電子日記","dsw-tutorial"),...installedFonts.map(f=>new Option(f.family,f.family)));
+    }catch(e){fontListError=String(e);}finally{fontListLoading=false;$("companionFontsRefresh").disabled=false;renderFontList();}
+  }
+  $("companionFontSearch").oninput=renderFontList;
+  $("companionFontsRefresh").onclick=loadSystemFonts;
+  $("companionFontList").onchange=()=>{const family=$("companionFontList").value;if(!family||!settings)return;$("companionFont").value=family;previewFont();save();};
+  $("companionFont").oninput=()=>{previewFont();renderFontList();};$("companionFontScale").oninput=previewFont;
+  $("companionFontReset").onclick=()=>{$("companionFont").value="Microsoft YaHei UI";$("companionFontScale").value=100;previewFont();renderFontList();save();};
+  $("companionTutorialFont").onclick=()=>{$("companionFont").value="dsw-tutorial";previewFont();renderFontList();save();};
   function setSound(key,value){const select=$("sound-"+key);if(value.startsWith("custom:")&&!Array.from(select.options).some(o=>o.value===value))select.add(new Option("已导入自定义音效",value));select.value=value;}
   for(const key of Object.keys(soundEvents)){
     $("sound-"+key).onchange=save;
@@ -179,6 +217,7 @@
     roleSounds=JSON.parse(JSON.stringify(s.characterSounds||{}));roleEnabled={...(s.characterSoundEnabled||{})};renderRole();
     settings=s;$("characterDialogue").checked=s.characterDialogue!==false;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
     invoke("get_companion_history").then(status);
+    loadSystemFonts();
   }).catch(e=>{$("quotaStatus").textContent=String(e);});
   window.__TAURI__?.event?.listen("companion-status",e=>status(e.payload));
   setInterval(refresh,60000);

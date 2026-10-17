@@ -1,4 +1,9 @@
-DeepSeek Magpie Whale 2.8.0 · Windows x64
+DeepSeek Magpie Whale 2.8.1 · Windows x64
+
+2.8.1 新增
+气泡与台词设置自动读取 Windows 已安装字体，支持列表选择、中英文名搜索、实时预览和手动刷新。
+读取/刷新不改变原选择，未找到的当前字体仍保留；内置教程字体与手动输入继续可用。
+字体清单只在本机读取，不上传、不复制字体文件；保留全部原设置。
 
 2.8.0 新增
 Claude Code、CC Switch、OpenCode、Cursor、Trae 分来源读取开关、阶段与间隔；新来源默认关闭。

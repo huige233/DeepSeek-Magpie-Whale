@@ -21,6 +21,10 @@ await page.addInitScript(()=>{
     if(cmd==='sync_physics'&&arg?.action)window.testActions.push(arg.action);
     if(cmd==='get_config')return window.testConfig;
     if(cmd==='get_companion_settings')return window.testSettings;
+    if(cmd==='list_system_fonts'){
+      if(window.testFontFailure)throw new Error('Simulated enumeration failure');
+      return window.testFonts||[{family:'微软雅黑',aliases:['Microsoft YaHei UI','微软雅黑']},{family:'楷体',aliases:['KaiTi','楷体']},{family:'Aa 测试字体',aliases:['Aa Test Font']}];
+    }
     if(cmd==='save_companion_settings')return window.testSettings=arg.settings;
     if(cmd==='get_magpie_quotas')return window.testQuotas;
     if(cmd==='poll_companion')return{events:window.testEvents.splice(0),history:[],settings:window.testSettings};
@@ -308,6 +312,31 @@ try{
   assert.equal(await page.locator('#characterDialogue').isChecked(),true);
   await page.locator('#characterDialogue').uncheck();await page.waitForFunction(()=>testSettings.characterDialogue===false);
   await page.locator('#characterDialogue').check();await page.waitForFunction(()=>testSettings.characterDialogue===true);
+  await page.waitForFunction(()=>document.getElementById('companionFontListStatus').textContent.includes('已读取 3'));
+  const beforeFontSearch=await page.evaluate(()=>JSON.stringify(testSettings));
+  await page.locator('#companionFontSearch').fill('aa test');
+  assert.equal(await page.locator('#companionFontList option').count(),1);
+  assert.equal(await page.locator('#companionFontList').inputValue(),'');
+  assert.equal(await page.evaluate(()=>JSON.stringify(testSettings)),beforeFontSearch,'search cannot save or auto-select');
+  await page.locator('#companionFontList').selectOption('Aa 测试字体');
+  await page.waitForFunction(()=>testSettings.fontFamily==='Aa 测试字体');
+  assert.ok(await page.locator('.whale-font-preview').evaluate(e=>getComputedStyle(e).fontFamily.includes('Aa 测试字体')));
+  await page.locator('#companionFontSearch').fill('not-an-installed-font');
+  assert.equal(await page.locator('#companionFontList').isDisabled(),true);
+  await page.locator('#companionFontSearch').fill('');
+  const beforeRefresh=await page.evaluate(()=>JSON.stringify(testSettings));
+  await page.evaluate(()=>{window.testFonts=[{family:'新装字体',aliases:['New Font']},{family:'微软雅黑',aliases:['Microsoft YaHei UI']}];});
+  await page.locator('#companionFontsRefresh').click();
+  await page.waitForFunction(()=>document.getElementById('companionFontListStatus').textContent.includes('已读取 2'));
+  assert.equal(await page.evaluate(()=>JSON.stringify(testSettings)),beforeRefresh,'refresh preserves missing selected font and all settings');
+  assert.match(await page.locator('#companionFontList option:checked').innerText(),/未在列表中找到/);
+  await page.evaluate(()=>window.testFontFailure=true);await page.locator('#companionFontsRefresh').click();
+  await page.waitForFunction(()=>document.getElementById('companionFontListStatus').textContent.includes('读取失败'));
+  assert.equal(await page.locator('#companionFontList option').count(),4,'failed refresh keeps old list plus current and built-in');
+  await page.evaluate(()=>window.testFontFailure=false);await page.locator('#companionFontsRefresh').click();
+  await page.waitForFunction(()=>document.getElementById('companionFontListStatus').textContent.includes('已读取 2'));
+  await page.screenshot({path:'tests/artifacts/system-fonts-2.8.1.png',fullPage:true});
+  console.log('PASS: installed font list, aliases, filtering, selection, refresh, missing-family preservation and error recovery.');
   await page.locator('#companionFont').fill('KaiTi');await page.locator('#companionFont').press('Tab');
   await page.waitForFunction(()=>testSettings.fontFamily==='KaiTi');
   await page.locator('#companionFontScale').fill('130');await page.locator('#companionFontScale').press('Tab');

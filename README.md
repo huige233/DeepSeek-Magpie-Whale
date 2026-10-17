@@ -1,6 +1,12 @@
 # DeepSeek Magpie Whale · Windows 桌宠
 
-## Magpie 交互版 2.8.0（2026-10-17）
+## Magpie 交互版 2.8.1（2026-10-17）
+
+### 本机字体列表
+
+设置 → 气泡与台词：自动读取 Windows 已安装的字体家族，提供可滚动列表、中英文名搜索、实时预览和刷新按钮。选择后自动保存；列表加载、搜索和刷新不改变原字体，卸载或暂未识别的当前字体仍保留。教程同款内置字体继续可选，也可手动输入字体名。
+
+使用 [Windows DirectWrite 字体集合](https://learn.microsoft.com/en-us/windows/win32/api/dwrite/nf-dwrite-idwritefactory-getsystemfontcollection) 获取真实家族名及本地化别名，不使用字体文件名冒充 CSS 字体名，不上传字体清单、不复制系统字体。新安装字体后点击刷新；读取失败时仍可手动输入并重试。
 
 ### 多 IDE 读取与角色台词管理
 
