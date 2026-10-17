@@ -152,8 +152,11 @@ try{
     const box=await physics.locator('.tableware.rice').boundingBox();
     const target=await physics.evaluate(()=>{const p=WhalePhysics.bodies[0],f=WhalePhysics.face();return{x:f.x,y:f.y+p.h*.22};});
     await physics.mouse.move(box.x+box.width/2,box.y+box.height/2);await physics.mouse.down();
-    await physics.mouse.move(target.x,target.y,{steps:12});await physics.mouse.up();
-    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'release rice at face feeds in either orientation');
+    await physics.mouse.move(target.x,target.y,{steps:12});
+    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'food reaching face starts eating while pointer held');
+    await physics.mouse.move(target.x+80,target.y-40,{steps:3});
+    await physics.mouse.up();
+    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'held feeding is not cancelled or retriggered on release');
     await physics.evaluate(()=>WhalePhysics.clear());
   }
   await physics.close();
@@ -167,7 +170,7 @@ try{
       const sprites=await page.evaluate(async({main,atlas,manifest})=>{
         const img=new Image();img.src=atlas;await img.decode();const sprites={main};
         for(const [state,r] of Object.entries(manifest.frames)){
-          const c=document.createElement('canvas');c.width=r[2];c.height=r[3];c.getContext('2d').drawImage(img,...r,...(manifest.placements?.[state]||manifest.placement||[0,0,r[2],r[3]]));sprites[state]=c.toDataURL();
+          const c=document.createElement('canvas');c.width=manifest.output_size?.[0]||r[2];c.height=manifest.output_size?.[1]||r[3];c.getContext('2d').drawImage(img,...r,...(manifest.placements?.[state]||manifest.placement||[0,0,r[2],r[3]]));sprites[state]=c.toDataURL();
         }
         return sprites;
       },{main,atlas,manifest});
@@ -203,10 +206,14 @@ try{
       assert.ok(!await page.evaluate(()=>DSW.dom.textBox.textContent.includes('must not interrupt')));
       await page.evaluate(()=>{__emit('physics-state',{count:1,feeding:true,message:'fallback',cue:'feed'});});
       assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].feed.some(t=>DSW.dom.textBox.textContent.includes(t))),'feeding dialogue '+group);
+      await page.evaluate(()=>{DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.expression.clearMoodTimers();DSW.audio.pressDown();});
+      await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.stroking);
+      await page.screenshot({path:'tests/artifacts/'+group+'-pressed-2.6.png'});
+      await page.evaluate(()=>DSW.audio.pressUp());
       preview.push({group,sprites});
     }
     const gallery=await browser.newPage({viewport:{width:1340,height:1140}});
-    await gallery.setContent('<style>body{margin:20px;background:#e9edf2;color:#263346;font:14px Georgia}h1{margin:0 0 20px}section{display:flex;align-items:center;height:145px;border-bottom:1px solid #b5c2d1}b{width:90px;flex-shrink:0}figure{margin:0;width:135px;text-align:center}img{display:block;width:126px;height:126px;object-fit:contain}figcaption{font:11px monospace}</style><h1>AI Girls / nine expression states / 2.5.0</h1>');
+    await gallery.setContent('<style>body{margin:20px;background:#e9edf2;color:#263346;font:14px Georgia}h1{margin:0 0 20px}section{display:flex;align-items:center;height:145px;border-bottom:1px solid #b5c2d1}b{width:90px;flex-shrink:0}figure{margin:0;width:135px;text-align:center}img{display:block;width:126px;height:126px;object-fit:contain}figcaption{font:11px monospace}</style><h1>AI Girls / nine expression states / 2.6.0</h1>');
     await gallery.evaluate(rows=>{for(const {group,sprites} of rows){const section=document.createElement('section'),title=document.createElement('b');title.textContent=group.replace('-Chibi','');section.append(title);for(const [state,src] of Object.entries(sprites)){const figure=document.createElement('figure'),img=document.createElement('img'),label=document.createElement('figcaption');img.src=src;label.textContent=state;figure.append(img,label);section.append(figure);}document.body.append(section);}},preview);
     await gallery.evaluate(()=>Promise.all([...document.images].map(i=>i.decode())));
     await gallery.screenshot({path:process.env.WHALE_EXPRESSION_PREVIEW||'tests/artifacts/expressions-2.5.png',fullPage:true});await gallery.close();
@@ -223,6 +230,13 @@ try{
   await page.screenshot({path:'tests/artifacts/settings-2.3.png',fullPage:true});
   await page.getByRole('button',{name:'桌宠外观',exact:true}).click();
   assert.ok(await page.getByRole('heading',{name:'挂件配置',exact:true}).isVisible());
+  await page.locator('#roleSoundModel').selectOption('Claude-Chibi');
+  await page.locator('#roleSoundEnabled').uncheck();await page.waitForFunction(()=>testSettings.characterSoundEnabled['Claude-Chibi']===false);
+  await page.locator('#roleSound-pat').selectOption('none');await page.waitForFunction(()=>testSettings.characterSounds['Claude-Chibi'].pat==='none');
+  await page.locator('#roleSoundModel').selectOption('Kimi-Chibi');assert.equal(await page.locator('#roleSoundEnabled').isChecked(),true);
+  await page.locator('#roleImport-feed').click();await page.waitForFunction(()=>testSettings.characterSounds['Kimi-Chibi'].feed==='custom:kimi_feed-123.wav');
+  await page.locator('#roleSoundModel').selectOption('Claude-Chibi');assert.equal(await page.locator('#roleSound-pat').inputValue(),'none');assert.equal(await page.locator('#roleSoundEnabled').isChecked(),false);
+  await page.screenshot({path:'tests/artifacts/role-sounds-2.6.png',fullPage:true});
   await page.locator('#sound-pot_land').selectOption('none');await page.waitForFunction(()=>testSettings.componentSounds.pot_land==='none');
   await page.locator('#import-feed').click();await page.waitForFunction(()=>testSettings.componentSounds.feed==='custom:feed-123.wav');
   assert.equal(await page.locator('#sound-feed').inputValue(),'custom:feed-123.wav');

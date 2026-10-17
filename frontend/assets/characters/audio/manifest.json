@@ -1,0 +1,149 @@
+[
+  {
+    "file": "claude_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.10041186250411975,
+    "sha256": "ee4b9bc223554f816e0cd2f389a274a12554416ed2b2b63ca0c6cee5aca29f69"
+  },
+  {
+    "file": "claude_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.091237944244269,
+    "sha256": "a01859befdb8f19abf852656d04ce753b72409bb8e2bf6bbfd10c5d83c75fd88"
+  },
+  {
+    "file": "claude_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.10946691860811815,
+    "sha256": "9a6c0ace04b626049e00cf7ea0500b8b841647fb6c7bdda3b8fafc76223695a8"
+  },
+  {
+    "file": "glm_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.10456832319279569,
+    "sha256": "fe23db6ae4f7719f70704528c2b76d28cc103f2d6bf740efd76c280ee049e5a1"
+  },
+  {
+    "file": "glm_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.11003088476629573,
+    "sha256": "9ed3ded21a9dc8ff94aba9b24906b9c6de8bb31ddebe569ac6c1d2a24463218c"
+  },
+  {
+    "file": "glm_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.13329680548223427,
+    "sha256": "8d8c59faefae2bfbcc9d9a75fd5634c305def846b13a7fd0efc6f06d17fab8fe"
+  },
+  {
+    "file": "gpt_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.13529133204322513,
+    "sha256": "363b140d73337fefcfb06495443bf80ae937dac819fc07f4980576b3617588da"
+  },
+  {
+    "file": "gpt_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.10476012180190855,
+    "sha256": "cc0151e640003c7d3445b073783ecb37a1bb3bd2e9703f9effdf7fa138f34c4f"
+  },
+  {
+    "file": "gpt_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.12660166865346703,
+    "sha256": "1f1281c496ccccc471a2f28f6ce2a49458d9a220db025ce8ea10cd5234d40ac3"
+  },
+  {
+    "file": "grok_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.126014593264015,
+    "sha256": "fc5b9daad47ca63d9eb68692c68566949c8d7bd0536238e56ebc231fc6267869"
+  },
+  {
+    "file": "grok_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.10283025357580947,
+    "sha256": "d15d132a664fd345133ecfac6dab1e500cf719d4dc5e6c121def728e05db7c9d"
+  },
+  {
+    "file": "grok_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.13825998105927353,
+    "sha256": "f19afa9476b8a6ab24d0a379920290de248eaee44d14c2e48670a893fcb14d6e"
+  },
+  {
+    "file": "qwen_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.11369635310301232,
+    "sha256": "c04242de8ea460bc77aef3305afbddd231dd59532942c68fbf44fcf3641cce0d"
+  },
+  {
+    "file": "qwen_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.10281121424945087,
+    "sha256": "29e94288fb851341204918d2d4c10f5664e14f87ee00e3cc9ea3dd260385725e"
+  },
+  {
+    "file": "qwen_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.14177964348593414,
+    "sha256": "3fdcc922e5f86492de485864a6c1ca663fe4537016d72d05e7977dd26340ca5a"
+  },
+  {
+    "file": "gemini_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.13985363390313646,
+    "sha256": "5143c4e6ecd1c4634dc47c0b252c790588c5f0dbc9e853e4be430f90b404d08d"
+  },
+  {
+    "file": "gemini_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.1158853137959737,
+    "sha256": "bf3e8c85bb7750f1d99430d9a2a364e9ef3b8528047208fd1e8197ff63d3e0a8"
+  },
+  {
+    "file": "gemini_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.14870036965703404,
+    "sha256": "d9a7c790c3da273b4d3cb184932474f2fa2d922ef062607936cec206eb9e97d0"
+  },
+  {
+    "file": "kimi_pat.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.12359023190775795,
+    "sha256": "56d4ac7befb0136dbe8034d3da9236c2d0e3e6f594d4a2ed2c90562f711b9ab9"
+  },
+  {
+    "file": "kimi_angry.wav",
+    "seconds": 0.94,
+    "peak": 0.48,
+    "rms": 0.12939340204928204,
+    "sha256": "1b25d1595a5a7811cedd9630cd5b38bc9dfc027c65452cc5e2daba21081a8a71"
+  },
+  {
+    "file": "kimi_feed.wav",
+    "seconds": 1.12,
+    "peak": 0.48,
+    "rms": 0.1544201000402177,
+    "sha256": "d9765697b4b9156d5d8ca1b033d884960119302c2b66b54c2b651e4c0900ab37"
+  }
+]

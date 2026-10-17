@@ -20,9 +20,11 @@ pub struct Settings {
     pub font_family: String,
     pub font_scale: f64,
     pub component_sounds: HashMap<String, String>,
+    pub character_sounds: HashMap<String, HashMap<String,String>>,
+    pub character_sound_enabled: HashMap<String,bool>,
 }
 impl Default for Settings {
-    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new() } }
+    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new(), character_sounds: HashMap::new(), character_sound_enabled: HashMap::new() } }
 }
 fn settings_path() -> PathBuf { app_data_dir().join("magpie.json") }
 #[tauri::command]
@@ -38,6 +40,11 @@ pub fn save_companion_settings(app: tauri::AppHandle, mut settings: Settings) ->
     settings.font_family = settings.font_family.trim().chars().filter(|c| !c.is_control()).take(100).collect();
     if settings.font_family.is_empty() { settings.font_family = "Microsoft YaHei UI".into(); }
     settings.component_sounds.retain(|key,value| crate::component_audio::valid_event(key) && crate::component_audio::valid_choice(value));
+    settings.character_sound_enabled.retain(|group,_| crate::character::valid_group(group));
+    settings.character_sounds.retain(|group,cues| {
+        cues.retain(|cue,choice| crate::character::valid_cue(cue) && crate::component_audio::valid_choice(choice) && choice != "anvil");
+        crate::character::valid_group(group)
+    });
     fs::write(settings_path(), serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     let _ = app.emit("companion-settings-changed", &settings);
     Ok(settings)
@@ -332,6 +339,7 @@ mod tests {
         assert!(s.codex_enabled);assert_eq!(s.notification_placement,"inside");
         assert!(!s.rice_on_completion);
         assert!(s.character_dialogue);
+        assert!(s.character_sounds.is_empty());assert!(s.character_sound_enabled.is_empty());
         let custom: Settings=serde_json::from_value(json!({"characterDialogue":false,"accountId":"keep"})).unwrap();
         assert!(!custom.character_dialogue);assert_eq!(custom.account_id,"keep");
         let enabled: Settings=serde_json::from_value(json!({"riceOnCompletion":true})).unwrap();

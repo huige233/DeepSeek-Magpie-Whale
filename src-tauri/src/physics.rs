@@ -16,7 +16,7 @@ pub fn create(app: &AppHandle, owner: &WebviewWindow) -> tauri::Result<()> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, sound: bool, volume: f64 }
+pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, #[serde(default)] character_sound: bool, sound: bool, volume: f64 }
 
 #[tauri::command]
 pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>) -> Result<(), String> {
@@ -39,7 +39,7 @@ pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>)
         "x": (pos.x as f64 + pet.x * sf - origin.x as f64) / osf,
         "y": (pos.y as f64 + pet.y * sf - origin.y as f64) / osf,
         "width": pet.width * sf / osf, "height": pet.height * sf / osf,
-        "left": pet.left, "sound": pet.sound, "volume": pet.volume,
+        "left": pet.left, "characterSound": pet.character_sound, "sound": pet.sound, "volume": pet.volume,
         "floor": (monitor.work_area().position.y as f64 + monitor.work_area().size.height as f64 - origin.y as f64) / osf,
         "monitor": format!("{},{}",origin.x,origin.y), "action": action
     });

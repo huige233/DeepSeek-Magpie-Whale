@@ -1035,7 +1035,7 @@ dependencies = [
 
 [[package]]
 name = "ds-desktop-whale"
-version = "2.5.0"
+version = "2.6.0"
 dependencies = [
  "auto-launch",
  "base64 0.22.1",

@@ -195,7 +195,7 @@ window.DSW = window.DSW || {};
     DSW.expression.syncVisualState();
     // 播放前先确保音频上下文处于运行态，避免待机唤醒后的首次点击延迟。
     if (engine.stats().contextState !== "running") engine.wake();
-    playSlot("press");
+    if (!DSW.characterSound?.trigger("pat")) playSlot("press");
   }
 
   // 松开：恢复形态 + 播放「松开」音效（仅双音效模式）。
@@ -204,7 +204,7 @@ window.DSW = window.DSW || {};
     flags.pressing = false;
     DSW.expression.syncVisualState();
     if (DSW.expression.scheduleNextBlink) DSW.expression.scheduleNextBlink();
-    playSlot("release");
+    if (!DSW.characterSound?.handles()) playSlot("release");
   }
 
   DSW.audio = {

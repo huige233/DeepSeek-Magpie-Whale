@@ -15,7 +15,7 @@
     <div id="companionAccounts" class="companion-accounts"></div>
     <label class="companion-toggle"><input type="checkbox" id="companionNotify">整轮对话结束后推送 Token / 费用</label>
     <label class="companion-toggle"><input type="checkbox" id="companionRice">显示整轮 Token 提示时，掉落一份大白饭</label>
-    <p class="companion-note">默认关闭。仅成功完成一轮并自动展示用量时掉一份；手动查看历史、中断、失败不掉饭。等待原台词结束，白饭落在角色前面，点击或拖到脸部松手才吃。已有 12 件餐具时跳过，不覆盖用量提示。</p>
+    <p class="companion-note">默认关闭。仅成功完成一轮并自动展示用量时掉一份；手动查看历史、中断、失败不掉饭。等待原台词结束，白饭落在角色前面，点击或送到脸前即吃，无需松手。已有 12 件餐具时跳过，不覆盖用量提示。</p>
     <label class="companion-toggle"><input type="checkbox" id="companionCodex">读取本机 Codex 的整轮结束事件（可关闭）</label>
     <p class="companion-note">一次用户输入到 Codex 最终完成算一轮；中间的工具调用、多次模型请求不弹提示。只读本机用量日志，不读取密钥。关闭后仍显示 Magpie 额度，但不伪造整轮通知。费用仅在 Magpie 完整记录与本轮用量匹配时显示。</p>
     <label for="companionPlacement">用量提示位置</label><select id="companionPlacement"><option value="inside">肥鱼对话气泡里面（默认）</option><option value="above">气泡上方（空间不足时放回气泡内）</option></select><p class="companion-note">自动提示等待当前台词结束，不遮盖气泡。完整缓存、推理用量可在下方历史中查看。</p>
@@ -50,7 +50,32 @@
     soundPanel.appendChild(row);
   }
   const soundStatus=document.createElement("p");soundStatus.id="componentSoundStatus";soundStatus.className="companion-status";soundStatus.setAttribute("role","status");soundPanel.appendChild(soundStatus);content.appendChild(soundPanel);
-  const groups=[[panel],[appearance,soundPanel],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
+  const roleAudio=window.WhaleCharacterAudio;
+  let roleSounds={},roleEnabled={};
+  const rolePanel=document.createElement("section");rolePanel.className="card companion-panel";
+  rolePanel.innerHTML='<h2>每位角色的互动音效</h2><p class="companion-note">七套原创合成音效，不是角色配音。摸头、生气、吃饭各有独立声音，跟随桌宠声音总开关与音量。这里选择角色只编辑其音效，不切换桌宠。旧音效组和组件音效保留；七位角色的进食使用这里的设置，不叠播公共进食声。</p><label for="roleSoundModel">要编辑的角色</label><select id="roleSoundModel"></select><label class="companion-toggle"><input type="checkbox" id="roleSoundEnabled">启用这位角色的互动音效</label>';
+  for(const cue of roleAudio.cues){
+    const label={pat:"摸头 / 轻按",angry:"生气",feed:"开始吃饭"}[cue],row=document.createElement("div");row.className="component-sound-row";
+    row.innerHTML=`<label for="roleSound-${cue}">${label}</label><select id="roleSound-${cue}"><option value="default">角色原配音效</option><option value="none">此项静音</option></select><div class="companion-tools"><button type="button" id="rolePreview-${cue}">试听</button><button type="button" id="roleImport-${cue}">替换音效</button></div>`;rolePanel.appendChild(row);
+  }
+  rolePanel.insertAdjacentHTML("beforeend",'<p class="companion-note">可替换为 WAV / MP3 / OGG / FLAC / M4A，最多 8 MiB；文件复制到本软件 data，原文件移走也可使用。试听为 50% 音量，显式试听不受角色开关影响。</p><p id="roleSoundStatus" role="status"></p>');
+  content.appendChild(rolePanel);
+  for(const [name,theme] of Object.entries(roleAudio.themes))$("roleSoundModel").add(new Option(name+" · "+theme,name+"-Chibi"));
+  function renderRole(){
+    const group=$("roleSoundModel").value;$("roleSoundEnabled").checked=roleEnabled[group]!==false;
+    for(const cue of roleAudio.cues){const sel=$("roleSound-"+cue),choice=roleSounds[group]?.[cue]||"default";
+      sel.replaceChildren(new Option("角色原配 · "+roleAudio.themes[roleAudio.model(group)],"default"),new Option("此项静音","none"));
+      if(choice.startsWith("custom:"))sel.add(new Option("已替换的自定义音效",choice));sel.value=choice;
+    }
+  }
+  $("roleSoundModel").onchange=()=>{roleAudio.stop();renderRole();};
+  $("roleSoundEnabled").onchange=()=>{roleEnabled[$("roleSoundModel").value]=$("roleSoundEnabled").checked;save();};
+  for(const cue of roleAudio.cues){
+    $("roleSound-"+cue).onchange=()=>{const group=$("roleSoundModel").value;(roleSounds[group]??={})[cue]=$("roleSound-"+cue).value;save();};
+    $("rolePreview-"+cue).onclick=async()=>{try{window.WhaleComponentAudio.stop();const ok=await roleAudio.play($("roleSoundModel").value,cue,.5,$("roleSound-"+cue).value);$("roleSoundStatus").textContent=ok?"正在试听 · 50% 音量":"此项已静音";}catch(e){$("roleSoundStatus").textContent="无法播放，请重新替换："+String(e);}};
+    $("roleImport-"+cue).onclick=async()=>{const button=$("roleImport-"+cue),group=$("roleSoundModel").value;button.disabled=true;try{const path=await invoke("pick_audio_file");if(!path)return;const choice=await invoke("import_component_sound",{event:roleAudio.model(group).toLowerCase()+"_"+cue,path});(roleSounds[group]??={})[cue]=choice;renderRole();await save();$("roleSoundStatus").textContent="已替换 "+group+" 的音效，文件已复制到本软件";}catch(e){$("roleSoundStatus").textContent="替换失败："+String(e);}finally{button.disabled=false;}};
+  }
+  const groups=[[panel],[appearance,soundPanel,rolePanel],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
   ["额度概览","桌宠外观","气泡与台词","进阶设置"].forEach((name,i)=>{
     const b=document.createElement("button");b.type="button";b.textContent=name;
     b.onclick=()=>{groups.forEach((g,j)=>g.forEach(e=>{if(e)e.hidden=i!==j;}));Array.from(nav.children).forEach((e,j)=>{e.classList.toggle("is-active",i===j);e.setAttribute("aria-current",i===j?"page":"false");});};nav.appendChild(b);
@@ -91,7 +116,7 @@
     if(!$("companionFontScale").reportValidity()||!$("companionPort").reportValidity()||!$("companionSeconds").reportValidity())return;
     saving=true;
     try {
-      settings=await invoke("save_companion_settings",{settings:{...settings,accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,characterDialogue:$("characterDialogue").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
+      settings=await invoke("save_companion_settings",{settings:{...settings,characterSounds:JSON.parse(JSON.stringify(roleSounds)),characterSoundEnabled:{...roleEnabled},accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,characterDialogue:$("characterDialogue").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
       $("companionSaveStatus").textContent="已保存，桌宠立即生效";$("companionFontStatus").textContent="字体已保存，桌宠立即生效";H.applyFont(settings,document);await refresh();
     }catch(e){$("companionSaveStatus").textContent="保存失败："+String(e);$("companionFontStatus").textContent="保存失败："+String(e);}finally{saving=false;if(saveAgain){saveAgain=false;save();}}
   }
@@ -115,6 +140,7 @@
   }
   invoke("get_companion_settings").then(s=>{
     for(const key of Object.keys(soundEvents))setSound(key,s.componentSounds?.[key]||(key==="pot_land"?"anvil":"default"));
+    roleSounds=JSON.parse(JSON.stringify(s.characterSounds||{}));roleEnabled={...(s.characterSoundEnabled||{})};renderRole();
     settings=s;$("characterDialogue").checked=s.characterDialogue!==false;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
     invoke("get_companion_history").then(status);
   }).catch(e=>{$("quotaStatus").textContent=String(e);});

@@ -5,7 +5,7 @@ use crate::infrastructure::system::paths::app_data_dir;
 
 const LIMIT: u64 = 8 * 1024 * 1024;
 pub fn valid_event(event: &str) -> bool {
-    matches!(event, "pot_land" | "pot_tap" | "pot_off" | "rice_land" | "feed")
+    matches!(event, "pot_land" | "pot_tap" | "pot_off" | "rice_land" | "feed") || crate::character::valid_event(event)
 }
 fn valid_file(name: &str) -> bool {
     name.len() <= 100 && !name.contains("..") && name.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b))

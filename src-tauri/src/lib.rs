@@ -23,6 +23,7 @@ mod infrastructure;
 mod shell;
 mod types;
 mod companion;
+mod character;
 mod component_audio;
 mod physics;
 #[cfg(feature = "native-smoke")]

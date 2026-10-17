@@ -10,6 +10,7 @@
     stack().forEach((p,i)=>{p.x=h.x-p.w/2;p.y=h.y-p.h-i*p.h*STACK_GAP;p.vx=p.vy=0;p.support="head";render(p);});
   }
   function sound(name) {
+    if(name==="feed"&&pet?.characterSound)return;
     if(!pet?.sound)return;
     window.WhaleComponentAudio?.play(name,pet.volume||0).catch(e=>console.warn("组件音效播放失败",String(e)));
   }
@@ -31,7 +32,7 @@
     const front=pet.x+pet.width/2<innerWidth/2?pet.x+pet.width+p.w*.60:pet.x-p.w*.60;
     p.x=Math.max(8,Math.min(innerWidth-p.w-8,(kind==="rice"?front:h.x)-p.w/2));p.y=-p.h;
     p.el.className="tableware "+kind;p.el.type="button";
-    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":"点击白饭，或拖到肥鱼脸部松手开饭；碰头、落地和等待不会自动吃";
+    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":"点击白饭，或送到角色脸前立即开饭；不必松手，碰头、落地和等待不会自动吃";
     p.el.innerHTML=kind==="rice"?'<span class="crop"><span class="rice-dish"></span><span class="rice-food"><img class="rice-grains" draggable="false" alt=""></span><img class="rice-basin" draggable="false" alt=""></span>':'<span class="crop"><img draggable="false" alt=""></span>';
     p.img=p.el.querySelector("img");
     p.el.querySelectorAll("img").forEach(img=>img.src="../assets/feeding/"+(kind==="pot"?"iron_bowl.png":"rice.png"));
@@ -50,6 +51,7 @@
       p.vx=Math.max(-1600,Math.min(1600,(e.clientX-grab.px)/dt));p.vy=Math.max(-1200,Math.min(1200,(e.clientY-grab.py)/dt));
       p.x=Math.max(-p.w*.2,Math.min(innerWidth-p.w*.8,e.clientX-grab.dx));p.y=e.clientY-grab.dy;
       grab.px=e.clientX;grab.py=e.clientY;grab.time=now;render(p);
+      if(p.kind==="rice"&&atFace(p))beginEat(p);
     };
     p.el.onpointerup=e=>{
       if(grab?.p!==p)return;const moved=grab.moved;grab=null;
@@ -62,7 +64,12 @@
   }
   function remove(p){p.el.remove();const i=bodies.indexOf(p);if(i>=0)bodies.splice(i,1);anchorStack();}
   function activate(p){if(p.kind==="rice"){if(!p.eating)beginEat(p);}else{p.spin=1.4;sound("pot_tap");}}
-  function beginEat(p) {if(p.eating)return;p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("饭送到啦，啊呜一大口白饭！","feed");}
+  function beginEat(p) {
+    if(p.eating)return;
+    if(grab?.p===p){const id=grab.id;grab=null;if(p.el.hasPointerCapture(id))p.el.releasePointerCapture(id);}
+    p.onHead=false;p.support=null;anchorStack();
+    p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("饭送到啦，啊呜一大口白饭！","feed");wake();
+  }
   function bite(p,n) {
     p.bite=n;
     // Only the food layer is masked; the metal rim and basin never shrink or disappear.

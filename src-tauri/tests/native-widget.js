@@ -13,6 +13,13 @@
     await invoke('save_companion_settings',{settings:{...(await invoke('get_companion_settings')),componentSounds:{pot_land:custom}}});
     check((await invoke('get_companion_settings')).componentSounds.pot_land===custom,'native sound selection persisted');
     await emit('smoke-report',{stage:'custom-sound',passed:true});
+    const roleCustom=await invoke('import_component_sound',{event:'kimi_feed',path:dataDir+'/test-anvil.wav'});
+    await invoke('save_companion_settings',{settings:{...(await invoke('get_companion_settings')),characterSounds:{'Kimi-Chibi':{feed:roleCustom}},characterSoundEnabled:{'Kimi-Chibi':false}}});
+    const roleSaved=await invoke('get_companion_settings');
+    check(roleSaved.characterSounds['Kimi-Chibi'].feed===roleCustom&&roleSaved.characterSoundEnabled['Kimi-Chibi']===false,'role custom/mute persisted');
+    check(roleSaved.componentSounds.pot_land===custom,'role settings preserve component sound');
+    check((await invoke('read_component_sound',{choice:roleCustom})).startsWith('data:audio/wav;base64,'),'native role sound read');
+    const audioContext=new AudioContext();let audioCount=0;
     const groups=await invoke('list_widget_groups');
     for(const model of ['Claude','GLM','GPT','Grok','Qwen','Gemini','Kimi']){
       const group=model+'-Chibi';check(groups.includes(group),'missing '+group);
@@ -23,9 +30,17 @@
       const frames={main:src};
       for(const state of states.filter(s=>s!=='main')){
         const data=await invoke('read_widget_image',{group,state});const frame=new Image();frame.src=data;await frame.decode();
-        check(frame.width===(model==='Qwen'?400:418)&&frame.height===frame.width,'atlas crop '+group+':'+state);frames[state]=data;
+        check(frame.width===418&&frame.height===frame.width,'atlas crop '+group+':'+state);frames[state]=data;
       }
       check(new Set(Object.values(frames)).size===9,'nine distinct frames '+group);
+      for(const cue of ['pat','angry','feed']){
+        const url=await WhaleCharacterAudio.resolve(group,cue,'default');
+        const response=await fetch(url);check(response.ok,'bundled role sound '+group+':'+cue);
+        const decoded=await audioContext.decodeAudioData(await response.arrayBuffer());
+        check(decoded.duration>0.5&&decoded.duration<2&&decoded.getChannelData(0).some(v=>Math.abs(v)>.01),'native audio decode '+group+':'+cue);
+        check(await WhaleCharacterAudio.play(group,cue,.01,'default'),'native HTML audio play '+group+':'+cue);
+        await wait(30);WhaleCharacterAudio.stop();audioCount++;
+      }
       DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=false;
       await new Promise(r=>DSW.images.resolve(DSW.C.IMG_URL,r));await wait(50);
       DSW.expression.syncVisualState();check(DSW.expression.isBlinkAllowed(),'blink enabled '+group);
@@ -43,6 +58,7 @@
       await emit('smoke-report',{stage:'character-expressions',group,states:states.length,passed:true});
 
     }
+    await audioContext.close();await emit('smoke-report',{stage:'character-audio',count:audioCount,customAndMutePersisted:true,passed:true});
     DSW.flags.widgetBody='小鲸鱼';DSW.images.invalidate();DSW.expression.handleWidgetConfigChange();DSW.bubble.hideBubble();
     await emit('smoke-report',{stage:'seven-character-assets',passed:true});
     await wait(500);DSW.bubble.showBubble();

@@ -318,6 +318,7 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_ANGRY);
+    DSW.characterSound?.trigger("angry");
     showMoodBubble("你再摸人家就生气了喵 (╬ Ò﹏Ó)", "angry");
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;
@@ -388,6 +389,7 @@ window.DSW = window.DSW || {};
     resetWhaleClickSequence();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_SHY);
+    DSW.characterSound?.trigger("pat");
     showMoodBubble("主人摸本鲸头了喵 (≧◡≦)♡", "shy");
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;

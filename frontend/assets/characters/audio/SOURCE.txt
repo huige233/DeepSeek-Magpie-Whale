@@ -1,0 +1,3 @@
+Original synthetic character interaction earcons, generated with tools/generate_character_sounds.py.
+No sampled recordings, cloned voices, game audio, or third-party music.
+Licensed under the project code license. These are sound effects, not character voice acting.
