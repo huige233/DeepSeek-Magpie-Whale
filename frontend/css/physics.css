@@ -1,4 +1,6 @@
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;user-select:none}
+#tablewareLayer{position:fixed;inset:0;pointer-events:none;mask-mode:alpha;mask-repeat:no-repeat}
+.tableware{pointer-events:auto}
 .tableware{position:absolute;border:0;padding:0;background:none;touch-action:none;cursor:grab;transform-origin:50% 90%;outline:none}
 .tableware:active{cursor:grabbing}.tableware:focus-visible{outline:2px dashed #8bb9d9}
 .tableware .crop{position:absolute;inset:0;overflow:hidden;pointer-events:none}

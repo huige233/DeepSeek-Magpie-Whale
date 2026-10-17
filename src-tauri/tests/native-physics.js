@@ -2,7 +2,21 @@
   let probe=0;
   await window.__TAURI__.event.listen('smoke-eat',()=>{
     const p=WhalePhysics.bodies.find(p=>p.kind==='rice');
-    if(p)p.el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));
+    if(p){
+      const capture=p.el.setPointerCapture;p.el.setPointerCapture=()=>{};
+      p.el.onpointerdown({button:0,pointerId:999,clientX:p.x+p.w*.5,clientY:p.y+p.h*.22,preventDefault(){}});
+      p.el.setPointerCapture=capture;const f=WhalePhysics.face();WhalePhysics.nativePointer([f.x,f.y,true]);
+      window.__TAURI__.event.emit('smoke-report',{stage:p.eating>0?'held-face-feed':'failed',passed:p.eating>0,error:p.eating>0?null:'native held cursor did not feed',method:'native WebView2 handler and cursor fallback; no extra click/up'});
+    }
+  });
+  await window.__TAURI__.event.listen('smoke-shield',async()=>{
+    try{
+      const css=WhalePhysics.layer.style.maskImage;if(!css.includes('data:image/svg+xml'))throw Error('native speech mask missing');
+      const img=new Image();img.src=css.slice(5,-2);await img.decode();const c=document.createElement('canvas');c.width=innerWidth;c.height=innerHeight;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+      const data=ctx.getImageData(0,0,c.width,c.height).data;let holes=0;for(let y=0;y<c.height;y+=5)for(let x=0;x<c.width;x+=5)if(WhalePhysics.shielded(x,y)&&data[(y*c.width+x)*4+3]===0)holes++;
+      if(holes<10)throw Error('native speech occlusion failed');
+      await window.__TAURI__.event.emit('smoke-report',{stage:'speech-above-tableware',holes,passed:true,method:'native overlay alpha mask raster and hit-test geometry'});
+    }catch(e){await window.__TAURI__.event.emit('smoke-report',{stage:'failed',error:String(e)});}
   });
   await window.__TAURI__.event.listen('smoke-probe',async()=>{
     const p=window.WhalePhysics;probe++;

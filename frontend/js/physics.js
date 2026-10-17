@@ -4,6 +4,20 @@
   const bodies=[]; let pet=null, grab=null, raf=0, previous=0, accumulator=0, ignore=true, cursorBusy=false;
   const STEP=1/120, GRAVITY=1550, MAX=12, STACK_GAP=2/3;
   let attachment=0;
+  const layer=document.getElementById('tablewareLayer'),shieldContext=document.createElement('canvas').getContext('2d');
+  let shieldPaths=[],maskKey='';
+  function syncShields(){
+    const shields=pet?.shields||[],key=JSON.stringify([innerWidth,innerHeight,shields]);if(key===maskKey)return;maskKey=key;
+    shieldPaths=shields.map(s=>({path:new Path2D(s.d),matrix:new DOMMatrix(s.matrix),stroke:s.stroke}));
+    if(!shields.length){layer.style.maskImage='none';return;}
+    const xml=document.createElementNS('http://www.w3.org/2000/svg','svg');xml.setAttribute('width',innerWidth);xml.setAttribute('height',innerHeight);
+    const ns=xml.namespaceURI,mask=document.createElementNS(ns,'mask');mask.id='bubble';mask.setAttribute('maskUnits','userSpaceOnUse');
+    const rect=()=>{const r=document.createElementNS(ns,'rect');r.setAttribute('width','100%');r.setAttribute('height','100%');r.setAttribute('fill','white');return r;};mask.append(rect());
+    for(const s of shields){const p=document.createElementNS(ns,'path');p.setAttribute('d',s.d);p.setAttribute('transform',`matrix(${s.matrix.join(' ')})`);p.setAttribute('fill','black');p.setAttribute('stroke','black');p.setAttribute('stroke-width',s.stroke);mask.append(p);}
+    xml.append(mask);const fill=rect();fill.setAttribute('mask','url(#bubble)');xml.append(fill);
+    layer.style.maskImage=`url("data:image/svg+xml,${encodeURIComponent(new XMLSerializer().serializeToString(xml))}")`;
+  }
+  function shielded(x,y){return shieldPaths.some(s=>{const p=new DOMPoint(x,y).matrixTransform(s.matrix.inverse());shieldContext.lineWidth=s.stroke;return shieldContext.isPointInPath(s.path,p.x,p.y)||shieldContext.isPointInStroke(s.path,p.x,p.y);});}
   const stack=()=>bodies.filter(p=>p.onHead).sort((a,b)=>a.attachment-b.attachment);
   function anchorStack() {
     const h=head();
@@ -17,8 +31,13 @@
   function feedback(message,cue) {invoke?.("physics_feedback",{count:bodies.length,feeding:bodies.some(p=>p.eating>0),message:message||null,cue:cue||null}).catch(()=>{});}
   function dimensions(p) {p.w=pet.width*(p.kind==="pot"?.94:.70);p.h=p.w*(p.kind==="pot"?.36:.72);}
   function head() {return {x:pet.x+pet.width*(pet.left?.40:.60),y:pet.y+pet.height*.34};}
-  function face() {return {x:head().x,y:pet.y+pet.height*.64,rx:pet.width*.20,ry:pet.height*.13};}
-  function atFace(p) {const f=face();return ((p.x+p.w*.5-f.x)/f.rx)**2+((p.y+p.h*.28-f.y)/f.ry)**2<=1;}
+  const mouths={'Claude-Chibi':[.458,.68],'GLM-Chibi':[.49,.735],'GPT-Chibi':[.46,.735],'Grok-Chibi':[.507,.708],'Qwen-Chibi':[.537,.666],'Gemini-Chibi':[.48,.735],'Kimi-Chibi':[.48,.695]};
+  function face() {const m=mouths[pet.group];return m?{x:pet.x+pet.width*(pet.left?1-m[0]:m[0]),y:pet.y+pet.height*m[1],rx:pet.width*.14,ry:pet.height*.10}:{x:head().x,y:pet.y+pet.height*.64,rx:pet.width*.20,ry:pet.height*.13};}
+  function atFace(p) {
+    const f=face(),x=p.x+p.w*.5,y=p.y+p.h*.22;
+    // Contact of the rice mound (not the plate's centre) with the mouth area is sufficient.
+    return y>pet.y+pet.height*(mouths[pet.group] ? .50 : .43) && ((x-f.x)/(f.rx+p.w*.38))**2+((y-f.y)/(f.ry+p.h*.18))**2<=1;
+  }
   function render(p) {
     p.el.style.width=p.w+"px";p.el.style.height=p.h+"px";
     p.el.style.transform=`translate(${p.x}px,${p.y}px) rotate(${p.angle}rad)`;
@@ -36,7 +55,7 @@
     p.el.innerHTML=kind==="rice"?'<span class="crop"><span class="rice-dish"></span><span class="rice-food"><img class="rice-grains" draggable="false" alt=""></span><img class="rice-basin" draggable="false" alt=""></span>':'<span class="crop"><img draggable="false" alt=""></span>';
     p.img=p.el.querySelector("img");
     p.el.querySelectorAll("img").forEach(img=>img.src="../assets/feeding/"+(kind==="pot"?"iron_bowl.png":"rice.png"));
-    document.body.appendChild(p.el);bodies.push(p);render(p);wake();feedback();
+    layer.appendChild(p.el);bodies.push(p);render(p);wake();feedback();
     p.el.onpointerdown=e=>{
       if(e.button!==0||p.eating)return;e.preventDefault();
       grab={p,id:e.pointerId,dx:e.clientX-p.x,dy:e.clientY-p.y,sx:e.clientX,sy:e.clientY,px:e.clientX,py:e.clientY,time:performance.now(),moved:false};
@@ -44,24 +63,31 @@
       invoke?.("set_ignore_cursor_events",{ignore:false});ignore=false;
     };
     p.el.onpointermove=e=>{
-      if(grab?.p!==p)return;const now=performance.now(),dt=Math.max(.008,(now-grab.time)/1000);
-      grab.moved ||= Math.hypot(e.clientX-grab.sx,e.clientY-grab.sy)>3;
-      if(!grab.moved)return;
-      p.onHead=false;p.support=null;anchorStack();
-      p.vx=Math.max(-1600,Math.min(1600,(e.clientX-grab.px)/dt));p.vy=Math.max(-1200,Math.min(1200,(e.clientY-grab.py)/dt));
-      p.x=Math.max(-p.w*.2,Math.min(innerWidth-p.w*.8,e.clientX-grab.dx));p.y=e.clientY-grab.dy;
-      grab.px=e.clientX;grab.py=e.clientY;grab.time=now;render(p);
-      if(p.kind==="rice"&&atFace(p))beginEat(p);
+      if(grab?.p===p)moveGrab(e.clientX,e.clientY);
     };
     p.el.onpointerup=e=>{
-      if(grab?.p!==p)return;const moved=grab.moved;grab=null;
-      if(p.el.hasPointerCapture(e.pointerId))p.el.releasePointerCapture(e.pointerId);
-      if(!moved)activate(p);else if(p.kind==="rice"&&atFace(p))beginEat(p);wake();
+      if(grab?.p===p)releaseGrab();
     };
-    p.el.onlostpointercapture=p.el.onpointercancel=()=>{if(grab?.p===p){grab=null;p.vx=p.vy=0;wake();}};
+    // Native polling keeps a held drag alive across WebView2 click-through/capture changes.
+    p.el.onpointercancel=()=>{if(grab?.p===p){grab=null;p.vx=p.vy=0;wake();}};
     p.el.ondblclick=()=>{if(p.kind==="pot"){p.onHead=false;p.support=null;p.vx=pet.left?220:-220;p.vy=-180;sound("pot_off");anchorStack();wake();}};
     p.el.onkeydown=e=>{if(e.key==="Delete"){remove(p);feedback();}else if((e.key==="Enter"||e.key===" ")&&!e.repeat){e.preventDefault();activate(p);wake();}};
   }
+  function moveGrab(x,y){
+    if(!grab)return;const p=grab.p,now=performance.now(),dt=Math.max(.008,(now-grab.time)/1000);
+    grab.moved ||= Math.hypot(x-grab.sx,y-grab.sy)>3;if(!grab.moved)return;
+    p.offered=true;p.onHead=false;p.support=null;anchorStack();
+    p.vx=Math.max(-1600,Math.min(1600,(x-grab.px)/dt));p.vy=Math.max(-1200,Math.min(1200,(y-grab.py)/dt));
+    p.x=Math.max(-p.w*.2,Math.min(innerWidth-p.w*.8,x-grab.dx));p.y=y-grab.dy;
+    grab.px=x;grab.py=y;grab.time=now;render(p);
+    if(p.kind==='rice'&&atFace(p))beginEat(p);
+  }
+  function releaseGrab(){
+    if(!grab)return;const {p,moved,id}=grab;grab=null;
+    if(p.el.hasPointerCapture(id))p.el.releasePointerCapture(id);
+    if(!moved)activate(p);else if(p.kind==='rice'&&atFace(p))beginEat(p);wake();
+  }
+  function nativePointer(xy){if(grab&&typeof xy[2]==='boolean'){if(xy[2])moveGrab(xy[0],xy[1]);else releaseGrab();}}
   function remove(p){p.el.remove();const i=bodies.indexOf(p);if(i>=0)bodies.splice(i,1);anchorStack();}
   function activate(p){if(p.kind==="rice"){if(!p.eating)beginEat(p);}else{p.spin=1.4;sound("pot_tap");}}
   function beginEat(p) {
@@ -95,6 +121,7 @@
     // Bottom-up order resolves supporting bodies before the nested bowl resting on them.
     const ordered=[...bodies].sort((a,b)=>b.y+b.h-a.y-a.h);
     for(const p of ordered){
+      if(p.kind==='rice'&&p.offered&&!p.eating&&atFace(p))beginEat(p);
       if(grab?.p===p)continue;
       if(p.onHead){p.angle+=p.spin*dt;p.spin+=(-p.angle*35-p.spin*9)*dt;render(p);continue;}
       if(p.eating){
@@ -120,7 +147,7 @@
       p.support=null;
       if(p.vy>=0&&p.y+p.h>=level&&oldBottom<=level+10){
         const impact=p.vy;p.y=level-p.h;p.vy=impact>100?-impact*.17:0;
-        p.vx*=.70;p.support=support;
+        p.vx*=.70;p.support=support;if(support==='head')p.offered=false;
         if(impact>170){p.spin=(p.x+p.w/2-h.x)*.012+.45;sound(p.kind==="rice"?"rice_land":"pot_land");}
       }
       // A thrown object can pass the head; the desktop remains the final collision plane.
@@ -137,9 +164,11 @@
   function clear(silent=false){grab=null;ignore=true;bodies.splice(0).forEach(p=>p.el.remove());cancelAnimationFrame(raf);raf=0;previous=0;accumulator=0;if(!silent)feedback();}
   function sync(next) {
     const old=pet;pet=next;
+    syncShields();
     if(old&&old.monitor!==next.monitor)clear(!!next.action&&next.action!=="clear");
     else if(old){
       for(const p of bodies){
+        if(grab?.p===p)continue;
         const bottom=p.y+p.h,center=p.x+p.w/2;dimensions(p);
         if(!p.onHead){p.x=center-p.w/2;p.y=bottom-p.h;}
       }
@@ -151,12 +180,13 @@
   setInterval(async()=>{
     if(!invoke||cursorBusy||!bodies.length)return;cursorBusy=true;
     try{const xy=await invoke("physics_cursor");if(!xy)return;
-      const el=document.elementFromPoint(xy[0],xy[1]);const value=!grab&&!el?.closest(".tableware");
+      nativePointer(xy);
+      const el=document.elementFromPoint(xy[0],xy[1]);const value=!grab&&(shielded(xy[0],xy[1])||!el?.closest(".tableware"));
       if(value!==ignore){await invoke("set_ignore_cursor_events",{ignore:value});ignore=value;}
     }catch{}finally{cursorBusy=false;}
   },40);
   event?.listen("physics-sync",e=>sync(e.payload));
   event?.listen("widget-visibility",e=>{if(!e.payload)clear();});event?.listen("app-quit",()=>clear());
   window.addEventListener("beforeunload",()=>clear());
-  window.WhalePhysics={sync,clear,bodies,simulate,head,face,atFace};
+  window.WhalePhysics={sync,clear,bodies,simulate,head,face,atFace,shielded,layer,nativePointer};
 })();

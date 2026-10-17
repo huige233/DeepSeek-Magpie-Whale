@@ -1,6 +1,6 @@
 [package]
 name = "ds-desktop-whale"
-version = "2.6.0"
+version = "2.7.0"
 description = "DS Desktop Whale · DeepSeek 余额查询与记账 · 独立 Windows 桌面版"
 authors = ["DSW"]
 edition = "2021"
@@ -26,7 +26,7 @@ auto-launch = "0.5"
 chrono = { version = "0.4", features = ["clock", "serde"] }
 log = "0.4"
 env_logger = "0.11"
-windows = { version = "0.58", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+windows = { version = "0.58", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }
 rfd = "0.15"
 base64 = "0.22"
 ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "api-23"] }

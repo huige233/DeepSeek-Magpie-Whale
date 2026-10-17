@@ -30,7 +30,7 @@
       const frames={main:src};
       for(const state of states.filter(s=>s!=='main')){
         const data=await invoke('read_widget_image',{group,state});const frame=new Image();frame.src=data;await frame.decode();
-        check(frame.width===418&&frame.height===frame.width,'atlas crop '+group+':'+state);frames[state]=data;
+        check(frame.width===img.width&&frame.height===img.height,'original canvas preserved '+group+':'+state);frames[state]=data;
       }
       check(new Set(Object.values(frames)).size===9,'nine distinct frames '+group);
       for(const cue of ['pat','angry','feed']){
@@ -70,6 +70,7 @@
     await emit('smoke-probe',true);
     await emit('smoke-eat',true);await wait(2000);await emit('smoke-probe',true);
     DSW.interactions.action('pot');await wait(2200);DSW.interactions.action('pot');await wait(2200);await emit('smoke-probe',true);
+    DSW.bubble.showDialogueLine('气泡应该始终在铁盆上方');await wait(900);await emit('smoke-shield',true);
     await emit('smoke-fixture','start');await wait(11000);
     check((await invoke('get_companion_history')).history.length===0,'requests must not notify before whole turn ends');
     await emit('smoke-report',{stage:'no-request-spam',passed:true});

@@ -1,5 +1,5 @@
 //! A separate, click-through monitor canvas keeps falling food above the widget viewport.
-use serde::Deserialize;
+use serde::{Deserialize,Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow, WebviewWindowBuilder, WebviewUrl};
 
@@ -16,7 +16,10 @@ pub fn create(app: &AppHandle, owner: &WebviewWindow) -> tauri::Result<()> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, #[serde(default)] character_sound: bool, sound: bool, volume: f64 }
+pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, #[serde(default)] group:String, #[serde(default)] shields:Vec<Shield>, #[serde(default)] character_sound: bool, sound: bool, volume: f64 }
+
+#[derive(Deserialize,Serialize)]
+pub struct Shield {d:String,matrix:[f64;6],stroke:f64}
 
 #[tauri::command]
 pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>) -> Result<(), String> {
@@ -35,11 +38,17 @@ pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>)
     let sf = window.scale_factor().unwrap_or(1.0);
     let osf = overlay.scale_factor().unwrap_or(sf);
     let pos = window.outer_position().map_err(|e| e.to_string())?;
+    let shields:Vec<Shield>=pet.shields.into_iter().take(8).filter(|s|s.d.len()<4096 && s.matrix.iter().all(|v|v.is_finite()) && s.stroke.is_finite()).map(|mut s|{
+        for v in &mut s.matrix[..4]{*v*=sf/osf;}
+        s.matrix[4]=(pos.x as f64+s.matrix[4]*sf-origin.x as f64)/osf;
+        s.matrix[5]=(pos.y as f64+s.matrix[5]*sf-origin.y as f64)/osf;s
+    }).collect();
     let geometry = json!({
         "x": (pos.x as f64 + pet.x * sf - origin.x as f64) / osf,
         "y": (pos.y as f64 + pet.y * sf - origin.y as f64) / osf,
         "width": pet.width * sf / osf, "height": pet.height * sf / osf,
         "left": pet.left, "characterSound": pet.character_sound, "sound": pet.sound, "volume": pet.volume,
+        "group":pet.group,"shields":shields,
         "floor": (monitor.work_area().position.y as f64 + monitor.work_area().size.height as f64 - origin.y as f64) / osf,
         "monitor": format!("{},{}",origin.x,origin.y), "action": action
     });
@@ -55,9 +64,11 @@ pub fn physics_feedback(window: WebviewWindow, count: usize, feeding: bool, mess
 }
 
 #[tauri::command]
-pub fn physics_cursor(window: WebviewWindow) -> Option<(f64, f64)> {
+pub fn physics_cursor(window: WebviewWindow) -> Option<(f64, f64, bool)> {
     let pos = window.outer_position().ok()?;
     let sf = window.scale_factor().ok()?;
     let (x,y) = crate::api::window_api::get_cursor_position(window);
-    Some((x - pos.x as f64 / sf, y - pos.y as f64 / sf))
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState,VK_LBUTTON};
+    let held=unsafe{GetAsyncKeyState(VK_LBUTTON.0 as i32)}<0;
+    Some((x - pos.x as f64 / sf, y - pos.y as f64 / sf,held))
 }

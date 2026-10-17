@@ -140,7 +140,7 @@ try{
   assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].kind==='rice'&&WhalePhysics.bodies[0].eating===0&&WhalePhysics.bodies[0].support==='head'),'head contact never feeds');
   const riceBox=await physics.locator('.tableware.rice').boundingBox();
   await physics.mouse.move(riceBox.x+riceBox.width/2,riceBox.y+riceBox.height/2);await physics.mouse.down();
-  await physics.mouse.move(riceBox.x-80,riceBox.y+60,{steps:10});await physics.mouse.up();
+  await physics.mouse.move(riceBox.x-300,riceBox.y+40,{steps:10});await physics.mouse.up();
   await physics.waitForTimeout(1800);
   assert.equal(await physics.locator('.tableware.rice').count(),1,'drag release does not feed');
   await physics.locator('.tableware.rice').focus();await physics.keyboard.press('Enter');await physics.waitForTimeout(1800);
@@ -159,6 +159,34 @@ try{
     assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'held feeding is not cancelled or retriggered on release');
     await physics.evaluate(()=>WhalePhysics.clear());
   }
+  for(const group of ['Claude','GLM','GPT','Grok','Qwen','Gemini','Kimi'])for(const left of [false,true])for(const size of [120,300]){
+    await physics.evaluate(({group,left,size})=>{WhalePhysics.sync({x:500,y:300,width:size,height:size,left,group:group+'-Chibi',sound:false,floor:900,monitor:'test',action:'feed'});for(let i=0;i<500;i++)WhalePhysics.simulate(1/120);},{group,left,size});
+    const b=await physics.locator('.tableware.rice').boundingBox();
+    await physics.mouse.move(b.x+b.width*.5,b.y+b.height*.2);await physics.mouse.down();
+    const f=await physics.evaluate(()=>WhalePhysics.face());await physics.mouse.move(f.x,f.y,{steps:6});
+    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'rice reaches '+group+' mouth without release, mirror='+left+' size='+size);
+    await physics.mouse.up();await physics.evaluate(()=>WhalePhysics.clear());
+  }
+  await physics.evaluate(()=>{WhalePhysics.sync({x:500,y:300,width:240,height:240,left:false,group:'Kimi-Chibi',sound:false,floor:900,monitor:'test',action:'feed'});for(let i=0;i<500;i++)WhalePhysics.simulate(1/120);});
+  const fallback=await physics.locator('.tableware.rice').boundingBox();await physics.mouse.move(fallback.x+fallback.width/2,fallback.y+fallback.height*.22);await physics.mouse.down();
+  assert.ok(await physics.evaluate(()=>{const p=WhalePhysics.bodies[0],f=WhalePhysics.face();p.el.releasePointerCapture(1);WhalePhysics.nativePointer([f.x,f.y,true]);return p.eating>0;}),'native held cursor fallback feeds after DOM pointer capture loss');
+  await physics.mouse.up();await physics.evaluate(()=>WhalePhysics.clear());
+  const bubbleShield=await page.evaluate(()=>{DSW.magpie.interrupt();DSW.bubble.showDialogueLine('气泡始终在餐具上方');return true;});
+  await page.waitForTimeout(650);
+  const shields=await page.evaluate(()=>DSW.interactions.bubbleShields());assert.ok(shields.length>=3,'bubble shape and both tails protected');
+  await physics.evaluate(shields=>{
+    WhalePhysics.sync({x:500,y:300,width:240,height:240,left:false,sound:false,floor:900,monitor:'test',action:'pot',shields});
+    const p=WhalePhysics.bodies[0];p.x=0;p.y=0;p.w=1280;p.h=900;p.el.innerHTML='';p.el.style.cssText='position:fixed;inset:0;width:1280px;height:900px;background:#ff00ff;pointer-events:auto';
+  },shields);
+  assert.ok(await physics.evaluate(()=>getComputedStyle(WhalePhysics.layer).maskImage.includes('data:image/svg+xml')),'physical overlay mask applied');
+  // The mask raster must actually contain transparent holes, not just higher CSS z-index.
+  const maskPixels=await physics.evaluate(async()=>{
+    const url=WhalePhysics.layer.style.maskImage.slice(5,-2),img=new Image();img.src=url;await img.decode();
+    const c=document.createElement('canvas');c.width=innerWidth;c.height=innerHeight;const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+    const bytes=ctx.getImageData(0,0,c.width,c.height).data;let holes=0,solid=0;for(let y=0;y<c.height;y+=4)for(let x=0;x<c.width;x+=4){const shield=WhalePhysics.shielded(x,y),a=bytes[(y*c.width+x)*4+3];if(shield&&a===0)holes++;if(!shield&&a===255)solid++;}return{holes,solid};
+  });assert.ok(maskPixels.holes>100&&maskPixels.solid>100,'bubble is a transparent hole in native overlay');
+  await physics.screenshot({path:'tests/artifacts/bubble-shield-2.7.png'});
+  await physics.evaluate(()=>WhalePhysics.clear());
   await physics.close();
   const petDir=process.env.WHALE_EXPRESSION_PACK;
   if(petDir){
@@ -167,7 +195,7 @@ try{
       const main='data:image/png;base64,'+fs.readFileSync(path.join(petDir,group,'main.png')).toString('base64');
       const atlas='data:image/png;base64,'+fs.readFileSync(path.join(petDir,group,'expressions.png')).toString('base64');
       const manifest=JSON.parse(fs.readFileSync(path.join(petDir,group,'expressions.json'),'utf8'));
-      const sprites=await page.evaluate(async({main,atlas,manifest})=>{
+      const sprites=process.env.WHALE_RENDERED_DIR?Object.fromEntries(['main',...Object.keys(manifest.frames)].map(state=>[state,'data:image/png;base64,'+fs.readFileSync(path.join(process.env.WHALE_RENDERED_DIR,group,state+'.png')).toString('base64')])):await page.evaluate(async({main,atlas,manifest})=>{
         const img=new Image();img.src=atlas;await img.decode();const sprites={main};
         for(const [state,r] of Object.entries(manifest.frames)){
           const c=document.createElement('canvas');c.width=manifest.output_size?.[0]||r[2];c.height=manifest.output_size?.[1]||r[3];c.getContext('2d').drawImage(img,...r,...(manifest.placements?.[state]||manifest.placement||[0,0,r[2],r[3]]));sprites[state]=c.toDataURL();
@@ -175,7 +203,7 @@ try{
         return sprites;
       },{main,atlas,manifest});
       await page.evaluate(async({group,sprites})=>{
-        const original=DSW.invoke;
+        const original=window.baseSpriteInvoke??=DSW.invoke;
         DSW.invoke=async(cmd,args)=>args?.group===group?(cmd==='widget_group_states'?Object.keys(sprites):cmd==='read_widget_image'?sprites[args.state]:original(cmd,args)):original(cmd,args);
         DSW.flags.widgetBody=group;DSW.images.invalidate();DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=false;
         DSW.expression.clearMoodTimers();DSW.expression.cancelBlink(false);DSW.characters.configure({characterDialogue:true});DSW.bubble.hideBubble();
@@ -189,10 +217,12 @@ try{
         await new Promise(r=>setTimeout(r,1700));observer.disconnect();DSW.expression.cancelBlink(true);return seen;
       });
       for(const state of ['half_closed_eyes','close_eyes','half_open_eyes'])assert.ok(blink.includes(sprites[state]),'automatic blink frame '+group+':'+state);
+      const fixedRect=await page.evaluate(()=>{const r=DSW.dom.img.getBoundingClientRect();return[r.x,r.y,r.width,r.height].map(n=>Math.round(n*100));});
       for(const [state,constant] of Object.entries({main:'IMG_URL',half_closed_eyes:'IMG_HALF_CLOSED_EYES',close_eyes:'IMG_CLOSE_EYES',half_open_eyes:'IMG_HALF_OPEN_EYES',stroking:'IMG_URL_PRESS',shy:'IMG_SHY',angry:'IMG_ANGRY',disappointed:'IMG_DISAPPOINTED',exhausted:'IMG_EXHAUSTED'})){
         await page.evaluate(constant=>{DSW.expression.cancelBlink(false);DSW.expression.setIcon(DSW.C[constant]);},constant);
         await page.waitForFunction(src=>DSW.dom.img.src===src,sprites[state]);
         assert.ok(await page.evaluate(async()=>{await DSW.dom.img.decode();return DSW.dom.img.naturalWidth>0;}));
+        assert.deepEqual(await page.evaluate(()=>{const r=DSW.dom.img.getBoundingClientRect();return[r.x,r.y,r.width,r.height].map(n=>Math.round(n*100));}),fixedRect,'no layout movement '+group+':'+state);
       }
       assert.ok(await page.evaluate(()=>{
         const r=DSW.dom.img.getBoundingClientRect();
@@ -208,13 +238,13 @@ try{
       assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].feed.some(t=>DSW.dom.textBox.textContent.includes(t))),'feeding dialogue '+group);
       await page.evaluate(()=>{DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.expression.clearMoodTimers();DSW.audio.pressDown();});
       await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.stroking);
-      await page.screenshot({path:'tests/artifacts/'+group+'-pressed-2.6.png'});
+      await page.screenshot({path:'tests/artifacts/'+group+'-pressed-2.7.png'});
       await page.evaluate(()=>DSW.audio.pressUp());
       preview.push({group,sprites});
     }
     const gallery=await browser.newPage({viewport:{width:1340,height:1140}});
-    await gallery.setContent('<style>body{margin:20px;background:#e9edf2;color:#263346;font:14px Georgia}h1{margin:0 0 20px}section{display:flex;align-items:center;height:145px;border-bottom:1px solid #b5c2d1}b{width:90px;flex-shrink:0}figure{margin:0;width:135px;text-align:center}img{display:block;width:126px;height:126px;object-fit:contain}figcaption{font:11px monospace}</style><h1>AI Girls / nine expression states / 2.6.0</h1>');
-    await gallery.evaluate(rows=>{for(const {group,sprites} of rows){const section=document.createElement('section'),title=document.createElement('b');title.textContent=group.replace('-Chibi','');section.append(title);for(const [state,src] of Object.entries(sprites)){const figure=document.createElement('figure'),img=document.createElement('img'),label=document.createElement('figcaption');img.src=src;label.textContent=state;figure.append(img,label);section.append(figure);}document.body.append(section);}},preview);
+    await gallery.setContent('<style>body{margin:20px;background:#e9edf2;color:#263346;font:14px Georgia}h1{margin:0 0 20px}section{display:flex;align-items:center;height:145px;border-bottom:1px solid #b5c2d1}b{width:90px;flex-shrink:0}figure{margin:0;width:135px;text-align:center}img{display:block;width:126px;height:126px;object-fit:contain}figcaption{font:11px monospace}</style><h1>AI Girls / nine expression states / 2.7.0</h1>');
+    for(const row of preview)await gallery.evaluate(({group,sprites})=>{const section=document.createElement('section'),title=document.createElement('b');title.textContent=group.replace('-Chibi','');section.append(title);for(const [state,src] of Object.entries(sprites)){const figure=document.createElement('figure'),img=document.createElement('img'),label=document.createElement('figcaption');img.src=src;label.textContent=state;figure.append(img,label);section.append(figure);}document.body.append(section);},row);
     await gallery.evaluate(()=>Promise.all([...document.images].map(i=>i.decode())));
     await gallery.screenshot({path:process.env.WHALE_EXPRESSION_PREVIEW||'tests/artifacts/expressions-2.5.png',fullPage:true});await gallery.close();
     console.log('PASS: seven groups, 63 rendered states, own dialogue, mirrored click masks and usage speech guard.');
