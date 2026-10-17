@@ -9,9 +9,10 @@
 .dshwv-text{width:140px;max-height:88px;overflow:hidden;box-sizing:border-box;font-family:var(--companion-font,"Microsoft YaHei UI",sans-serif)}
 .dshwv-text>div{max-width:100%;box-sizing:border-box}
 .dshwv-text.quota-mode>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0;line-height:1.25}
-.dshwv-text.quota-mode .dshwv-amount{font-size:25px;font-weight:800}
-.dshwv-text.quota-mode .dshwv-hint{font-size:11px;margin-top:5px}
-.dshwv-text.quota-mode .dshwv-period{font-size:10px;margin-top:3px;font-weight:600}
+.dshwv-text.quota-mode{display:flex;flex-direction:column;gap:3px;text-align:center}
+.dshwv-text.quota-mode .dshwv-amount{order:1;font-size:25px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.08}
+.dshwv-text.quota-mode .dshwv-hint{order:0;font-size:10px;margin:0;opacity:.85}
+.dshwv-text.quota-mode .dshwv-period{order:2;font-size:9.5px;margin:0;font-weight:500;opacity:.9}
 .dshwv-text .dshwv-wrap{font-size:calc(13px * var(--companion-font-scale,1));line-height:1.35;max-width:140px;overflow-wrap:anywhere;letter-spacing:0}
 .dshwv-text.usage-mode{display:flex;flex-direction:column;width:144px;max-height:88px;gap:4px}
 .dshwv-text.usage-mode .dshwv-hint{order:0;font-size:calc(10px * var(--companion-font-scale,1));line-height:1.25;margin:0;font-weight:600}
@@ -24,3 +25,6 @@
 .usage-toast .usage-eyebrow,.usage-toast .usage-detail{font-size:calc(11px * var(--companion-font-scale,1))}
 .usage-toast .usage-foot{font-size:calc(10px * var(--companion-font-scale,1))}
 @font-face{font-family:'dsw-tutorial';src:url('../assets/fonts/font.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+.component-sound-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr);gap:8px 14px;align-items:center;border-top:1px solid #ccd9e655;padding:12px 0}
+.component-sound-row select{margin:0}.component-sound-row .companion-tools{grid-column:2;margin:0}
+@media(max-width:480px){.component-sound-row{grid-template-columns:1fr}.component-sound-row .companion-tools{grid-column:1}}

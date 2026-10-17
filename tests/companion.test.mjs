@@ -8,6 +8,37 @@ function runtime() {
   const c={console,Math,Date, setTimeout(fn,ms){const id=next++;timers.set(id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},setInterval(){return 0;},clearInterval(){}};
   c.window=c;vm.createContext(c);c.timers=timers;return c;
 }
+
+test('completion rice is opt-in, one per successful automatic turn, never history or requests',()=>{
+  const c=runtime();vm.runInContext(source('companion-common.js'),c);
+  const claim=c.WhaleCompanion.claimCompletionRice, seen=new Set();
+  const n={id:'one',kind:'turn'},s={notifications:true,riceOnCompletion:true};
+  assert.equal(claim({},n,false,seen),false);
+  assert.equal(claim({...s,notifications:false},n,false,seen),false);
+  assert.equal(claim(s,n,true,seen),false);
+  assert.equal(claim(s,{...n,kind:'request'},false,seen),false);
+  assert.equal(claim(s,{...n,interrupted:true},false,seen),false);
+  assert.equal(claim(s,n,false,seen),true);
+  assert.equal(claim(s,n,false,seen),false);
+  assert.equal(claim(s,{...n,id:'two'},false,seen),true);
+});
+
+test('component sounds support independent overrides, local imports, mute and bounded volume',async()=>{
+  const c=runtime(),audio=[];let reads=0;
+  c.Audio=class {constructor(src){this.src=src;audio.push(this);}play(){return Promise.resolve();}pause(){this.paused=true;}};
+  c.__TAURI__={core:{invoke:async(cmd)=>{if(cmd==='get_companion_settings')return{};reads++;return'data:audio/wav;base64,TEST';}}};
+  vm.runInContext(source('component-audio.js'),c);await Promise.resolve();
+  const A=c.WhaleComponentAudio;
+  assert.equal(A.choiceFor('pot_land'),'anvil');
+  assert.equal(await A.play('feed',0),false);
+  assert.equal(await A.play('feed',1,'none'),false);
+  await A.play('pot_land',4,'anvil');assert.equal(audio.at(-1).volume,1);assert.match(audio.at(-1).src,/anvil.wav$/);
+  A.configure({componentSounds:{feed:'custom:feed-123.wav'}});
+  await A.play('feed',.3,'custom:feed-123.wav');await A.play('feed',.3,'custom:feed-123.wav');
+  assert.equal(reads,1);assert.equal(audio.at(-1).volume,.3);
+  A.stop();assert.ok(audio.every(a=>a.paused));
+  await assert.rejects(A.resolve('invalid','default'));
+});
 test('unknown quota is never converted to zero and missing selected account is not substituted',()=>{
   const c=runtime();vm.runInContext(source('companion-common.js'),c);
   const H=c.WhaleCompanion;

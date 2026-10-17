@@ -11,25 +11,27 @@
   }
   function sound(name) {
     if(!pet?.sound)return;
-    const a=new Audio("../assets/feeding/"+name+".mp3");a.volume=Math.max(0,Math.min(1,pet.volume||0));a.play().catch(()=>{});
+    window.WhaleComponentAudio?.play(name,pet.volume||0).catch(e=>console.warn("组件音效播放失败",String(e)));
   }
   function feedback(message) {invoke?.("physics_feedback",{count:bodies.length,feeding:bodies.some(p=>p.eating>0),message:message||null}).catch(()=>{});}
   function dimensions(p) {p.w=pet.width*(p.kind==="pot"?.94:.70);p.h=p.w*(p.kind==="pot"?.36:.72);}
   function head() {return {x:pet.x+pet.width*(pet.left?.40:.60),y:pet.y+pet.height*.34};}
+  function face() {return {x:head().x,y:pet.y+pet.height*.64,rx:pet.width*.20,ry:pet.height*.13};}
+  function atFace(p) {const f=face();return ((p.x+p.w*.5-f.x)/f.rx)**2+((p.y+p.h*.28-f.y)/f.ry)**2<=1;}
   function render(p) {
     p.el.style.width=p.w+"px";p.el.style.height=p.h+"px";
     p.el.style.transform=`translate(${p.x}px,${p.y}px) rotate(${p.angle}rad)`;
     p.el.style.zIndex=String(grab?.p===p?1000:p.onHead?200+stack().indexOf(p):500);
   }
-  function create(kind) {
-    if(!pet||bodies.length>=MAX){feedback("餐具已经堆了十二个，先收拾一下吧。");return;}
+  function create(kind,quiet=false) {
+    if(!pet||bodies.length>=MAX){if(!quiet)feedback("餐具已经堆了十二个，先收拾一下吧。");return;}
     const p={kind,x:0,y:0,vx:0,vy:0,angle:0,spin:0,support:null,onHead:false,attachment:0,eating:0,el:document.createElement("button")};
     dimensions(p);const h=head();
     // Rice lands beside the pet, toward screen centre, never on its crown by default.
     const front=pet.x+pet.width/2<innerWidth/2?pet.x+pet.width+p.w*.60:pet.x-p.w*.60;
     p.x=Math.max(8,Math.min(innerWidth-p.w-8,(kind==="rice"?front:h.x)-p.w/2));p.y=-p.h;
     p.el.className="tableware "+kind;p.el.type="button";
-    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":"点击白饭才开饭；可以拖动，碰到头顶也不会自动吃";
+    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":"点击白饭，或拖到肥鱼脸部松手开饭；碰头、落地和等待不会自动吃";
     p.el.innerHTML=kind==="rice"?'<span class="crop"><span class="rice-dish"></span><span class="rice-food"><img class="rice-grains" draggable="false" alt=""></span><img class="rice-basin" draggable="false" alt=""></span>':'<span class="crop"><img draggable="false" alt=""></span>';
     p.img=p.el.querySelector("img");
     p.el.querySelectorAll("img").forEach(img=>img.src="../assets/feeding/"+(kind==="pot"?"iron_bowl.png":"rice.png"));
@@ -52,22 +54,22 @@
     p.el.onpointerup=e=>{
       if(grab?.p!==p)return;const moved=grab.moved;grab=null;
       if(p.el.hasPointerCapture(e.pointerId))p.el.releasePointerCapture(e.pointerId);
-      if(!moved)activate(p);wake();
+      if(!moved)activate(p);else if(p.kind==="rice"&&atFace(p))beginEat(p);wake();
     };
     p.el.onlostpointercapture=p.el.onpointercancel=()=>{if(grab?.p===p){grab=null;p.vx=p.vy=0;wake();}};
-    p.el.ondblclick=()=>{if(p.kind==="pot"){p.onHead=false;p.support=null;p.vx=pet.left?220:-220;p.vy=-180;anchorStack();wake();}};
+    p.el.ondblclick=()=>{if(p.kind==="pot"){p.onHead=false;p.support=null;p.vx=pet.left?220:-220;p.vy=-180;sound("pot_off");anchorStack();wake();}};
     p.el.onkeydown=e=>{if(e.key==="Delete"){remove(p);feedback();}else if((e.key==="Enter"||e.key===" ")&&!e.repeat){e.preventDefault();activate(p);wake();}};
   }
   function remove(p){p.el.remove();const i=bodies.indexOf(p);if(i>=0)bodies.splice(i,1);anchorStack();}
-  function activate(p){if(p.kind==="rice"){if(!p.eating)beginEat(p);}else{p.spin=1.4;sound("pot_land");}}
-  function beginEat(p) {p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("收到，点击开饭！啊呜一大口白饭！");}
+  function activate(p){if(p.kind==="rice"){if(!p.eating)beginEat(p);}else{p.spin=1.4;sound("pot_tap");}}
+  function beginEat(p) {if(p.eating)return;p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("饭送到啦，啊呜一大口白饭！");}
   function bite(p,n) {
     p.bite=n;
     // Only the food layer is masked; the metal rim and basin never shrink or disappear.
     p.el.querySelector(".rice-food").style.clipPath=`inset(${n*17}% 0 0 0)`;
     for(let i=0;i<3;i++){
       const grain=document.createElement("span");grain.className="flying-grain";p.el.appendChild(grain);
-      const dx=pet.x+pet.width*.5-(p.x+p.w*.5),dy=pet.y+pet.height*.65-(p.y+p.h*.25);
+      const f=face(),dx=f.x-(p.x+p.w*.5),dy=f.y-(p.y+p.h*.25);
       const animation=grain.animate([{transform:`translate(${i*5-5}px,0) rotate(${i*35}deg)`,opacity:1},{transform:`translate(${dx*.4}px,${Math.min(-35,dy*.4-25)}px) rotate(90deg)`,opacity:1,offset:.45},{transform:`translate(${dx}px,${dy}px) rotate(180deg)`,opacity:0}],{duration:300+i*25,easing:"ease-in"});
       animation.onfinish=()=>grain.remove();
     }
@@ -112,7 +114,7 @@
       if(p.vy>=0&&p.y+p.h>=level&&oldBottom<=level+10){
         const impact=p.vy;p.y=level-p.h;p.vy=impact>100?-impact*.17:0;
         p.vx*=.70;p.support=support;
-        if(impact>170){p.spin=(p.x+p.w/2-h.x)*.012+.45;sound("pot_land");}
+        if(impact>170){p.spin=(p.x+p.w/2-h.x)*.012+.45;sound(p.kind==="rice"?"rice_land":"pot_land");}
       }
       // A thrown object can pass the head; the desktop remains the final collision plane.
       if(p.y+p.h>floor){p.y=floor-p.h;p.vy=0;p.vx*=.8;p.support="floor";}
@@ -136,7 +138,7 @@
       }
       anchorStack();
     }
-    if(next.action==="clear")clear();else if(next.action==="feed")create("rice");else if(next.action==="pot")create("pot");
+    if(next.action==="clear")clear();else if(next.action==="feed")create("rice");else if(next.action==="reward")create("rice",true);else if(next.action==="pot")create("pot");
     wake();
   }
   setInterval(async()=>{
@@ -149,5 +151,5 @@
   event?.listen("physics-sync",e=>sync(e.payload));
   event?.listen("widget-visibility",e=>{if(!e.payload)clear();});event?.listen("app-quit",()=>clear());
   window.addEventListener("beforeunload",()=>clear());
-  window.WhalePhysics={sync,clear,bodies,simulate,head};
+  window.WhalePhysics={sync,clear,bodies,simulate,head,face,atFace};
 })();

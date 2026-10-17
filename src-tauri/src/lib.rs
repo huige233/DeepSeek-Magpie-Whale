@@ -23,6 +23,7 @@ mod infrastructure;
 mod shell;
 mod types;
 mod companion;
+mod component_audio;
 mod physics;
 #[cfg(feature = "native-smoke")]
 mod native_smoke;
@@ -166,6 +167,8 @@ pub fn run() {
             companion::get_magpie_quotas,
             companion::poll_companion,
             companion::get_companion_history,
+            component_audio::import_component_sound,
+            component_audio::read_component_sound,
             companion::record_usage_display,
             api::config_api::get_config,
             api::config_api::save_config,

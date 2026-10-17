@@ -2,6 +2,7 @@
   "use strict";
   let settings={accountId:"",notifications:true,notificationSeconds:12,notificationPlacement:"inside"},accounts=[],error="正在连接 Magpie…",refreshing=null;
   let stopped=false,pollTimer=null,active=null,history=[],queue=[],toastTimer=null,placement="inside";
+  const received=new Set(),rewarded=new Set();
   const toast=document.createElement("aside");toast.className="usage-toast";toast.hidden=true;toast.setAttribute("aria-live","polite");document.body.appendChild(toast);
   DSW.state.peakSupported=false;
   function shortWindow(name){return String(name||"").replace(/5 hours?/i,"5小时").replace(/7 days?/i,"7天").replace(/weekly/i,"周额度").replace(/daily/i,"日额度");}
@@ -9,7 +10,7 @@
   function countdown(at){const min=Math.ceil((Date.parse(at)-Date.now())/60000);return !Number.isFinite(min)?"重置未知":min<=0?"等待刷新":min>=1440?Math.floor(min/1440)+"天"+Math.floor(min%1440/60)+"时后重置":Math.floor(min/60)+"时"+String(min%60).padStart(2,"0")+"分后重置";}
   function fit() {
     const {amountEl,hintEl,periodEl}=DSW.dom;
-    for(const [el,max,min] of [[amountEl,25,13],[hintEl,11,8],[periodEl,10,8]]){
+    for(const [el,max,min] of [[amountEl,25,13],[hintEl,10,8],[periodEl,9.5,8]]){
       const ratio=settings.fontScale||1;el.style.fontSize=(max*ratio)+"px";let n=max*ratio;
       while(el.scrollWidth>el.clientWidth&&n>min){el.style.fontSize=--n+"px";}
       el.title=el.textContent;
@@ -83,6 +84,7 @@
       if(!place())inside(n);
     }else inside(n);
     active=n;DSW.flags.usageVisible=true;DSW.widgetConfig.pauseDialogue();
+    if(H.claimCompletionRice(settings,n,manual,rewarded))DSW.interactions?.action("reward");
     requestAnimationFrame(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return[r.left,r.top,r.width,r.height];};
       DSW.invoke?.("record_usage_display",{id:n.id,manual,placement,previousBubble,bubble:rect(DSW.dom.bubbleBox),toast:toast.hidden?null:rect(toast)}).catch(()=>{});
@@ -97,7 +99,7 @@
   async function poll(){
     if(stopped||!DSW.invoke)return;
     try{const result=await DSW.invoke("poll_companion");history=result.history||[];settings=result.settings||settings;
-      const events=(result.events||[]).filter(n=>n.kind==="turn");
+      const events=(result.events||[]).filter(n=>{if(n.kind!=="turn"||!n.id||received.has(n.id))return false;received.add(n.id);return settings.notifications;});
       if(events.length){queue.push(...events);queue=queue.slice(-30);await refresh();next();}
       window.dispatchEvent(new CustomEvent("companion-status",{detail:result}));
     }catch(e){console.warn("用量监听暂不可用",String(e));}finally{if(!stopped)pollTimer=setTimeout(poll,2000);}

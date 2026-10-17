@@ -12,14 +12,16 @@ pub struct Settings {
     pub account_id: String,
     pub port: u16,
     pub notifications: bool,
+    pub rice_on_completion: bool,
     pub codex_enabled: bool,
     pub notification_seconds: u32,
     pub notification_placement: String,
     pub font_family: String,
     pub font_scale: f64,
+    pub component_sounds: HashMap<String, String>,
 }
 impl Default for Settings {
-    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0 } }
+    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new() } }
 }
 fn settings_path() -> PathBuf { app_data_dir().join("magpie.json") }
 #[tauri::command]
@@ -34,6 +36,7 @@ pub fn save_companion_settings(app: tauri::AppHandle, mut settings: Settings) ->
     settings.font_scale = if settings.font_scale.is_finite() { settings.font_scale.clamp(0.8, 1.4) } else { 1.0 };
     settings.font_family = settings.font_family.trim().chars().filter(|c| !c.is_control()).take(100).collect();
     if settings.font_family.is_empty() { settings.font_family = "Microsoft YaHei UI".into(); }
+    settings.component_sounds.retain(|key,value| crate::component_audio::valid_event(key) && crate::component_audio::valid_choice(value));
     fs::write(settings_path(), serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     let _ = app.emit("companion-settings-changed", &settings);
     Ok(settings)
@@ -326,6 +329,9 @@ mod tests {
         assert_eq!(s.account_id,"saved-account");assert_eq!(s.port,1234);
         assert_eq!(s.font_family,"Microsoft YaHei UI");assert_eq!(s.font_scale,1.0);
         assert!(s.codex_enabled);assert_eq!(s.notification_placement,"inside");
+        assert!(!s.rice_on_completion);
+        let enabled: Settings=serde_json::from_value(json!({"riceOnCompletion":true})).unwrap();
+        assert!(enabled.rice_on_completion);
     }
     fn event(kind: &str, p: Value) -> Value { json!({"timestamp":"2026-10-17T12:00:00Z", "type": kind, "payload":p}) }
     fn boot() -> DateTime<Utc> { "2026-10-17T11:00:00Z".parse().unwrap() }

@@ -11,13 +11,14 @@ const browser=await chromium.launch({channel:'msedge',headless:true});
 const page=await browser.newPage({viewport:{width:625,height:625}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.addInitScript(()=>{
-  window.testListeners={};window.testEvents=[];window.testCalls=[];
+  window.testListeners={};window.testEvents=[];window.testCalls=[];window.testActions=[];
   window.testSettings={accountId:'',port:3425,notifications:true,codexEnabled:false,notificationSeconds:5,notificationPlacement:"inside"};
   window.testConfig={apiKey:'',models:{primary:{name:'test'}},codexModels:{primary:{name:'test'}},widget:{scale:1.5,sound:false,vol:0,bubbleColor:'#203170',widgetBody:'小鲸鱼',peakWarnEnabled:false,exhaustedModeEnabled:true,exhaustedBalanceThreshold:5},dialogue:{lines:['鲸鲸吃饭了'],mode:'carousel',intervalMin:1,jitter:0},bubble:{rows:[],currentGroup:'默认'},widgetPosition:{h:'right',v:'bottom'},globalColor:'#203170',globalTheme:'light'};
   window.testQuotas={data:[{provider:'codex',name:'Codex',plan:'pro',last:true,readAt:new Date().toISOString(),windows:[{name:'5 hours',remaining:74,resetsAt:new Date(Date.now()+7200000).toISOString()},{name:'7 days',remaining:82,resetsAt:new Date(Date.now()+86400000).toISOString()}]},{provider:'deepseek',name:'DeepSeek',balance:'¥88.57',readAt:new Date().toISOString(),windows:[]}]};
   window.__emit=(name,payload)=>(window.testListeners[name]||[]).forEach(fn=>fn({payload}));
   window.__TAURI__={event:{listen:async(name,fn)=>{(window.testListeners[name]??=[]).push(fn);return()=>{};}},core:{invoke:async(cmd,arg)=>{
     if(!['get_cursor_position','set_ignore_cursor_events'].includes(cmd))window.testCalls.push(cmd);
+    if(cmd==='sync_physics'&&arg?.action)window.testActions.push(arg.action);
     if(cmd==='get_config')return window.testConfig;
     if(cmd==='get_companion_settings')return window.testSettings;
     if(cmd==='save_companion_settings')return window.testSettings=arg.settings;
@@ -32,6 +33,8 @@ await page.addInitScript(()=>{
     if(cmd==='list_bubble_groups')return['默认'];
     if(cmd==='list_audio_groups')return[];
     if(cmd==='get_data_dir')return'C:/Whale/data';
+    if(cmd==='pick_audio_file')return'C:/test/chime.wav';
+    if(cmd==='import_component_sound')return'custom:'+arg.event+'-123.wav';
     if(cmd.startsWith('list_'))return[];
     if(cmd==='resolve_audio_group')return{};
     return{};
@@ -62,6 +65,7 @@ try{
   await page.waitForFunction(()=>testEvents.length===0);
   assert.equal(await page.locator('.usage-mode').count(),0,'usage waits for existing dialogue instead of covering it');
   assert.equal(await page.locator('.usage-toast').isVisible(),false);
+  assert.equal(await page.evaluate(()=>testActions.filter(x=>x==='reward').length),0,'disabled by default');
   await page.evaluate(()=>DSW.bubble.hideBubble());
   await page.waitForSelector('.usage-mode');
   assert.match(await page.locator('.usage-mode').innerText(),/1,840 tokens/);
@@ -75,6 +79,16 @@ try{
   assert.ok(above.y+above.height<bubble.y);
   await page.screenshot({path:'tests/artifacts/usage-above-2.3.png'});
   await page.locator('.usage-close').click();
+  await page.evaluate(()=>{testSettings.riceOnCompletion=true;testSettings.notificationPlacement='inside';DSW.bubble.showDialogueLine('先等台词结束');clearTimeout(DSW.flags.bubbleTimer);testEvents.push({id:'rice-turn',kind:'turn',source:'Codex',tokens:{input:100,output:20,cached:40,reasoning:5}});});
+  await page.waitForFunction(()=>testEvents.length===0);
+  assert.equal(await page.evaluate(()=>testActions.filter(x=>x==='reward').length),0,'reward waits for dialogue too');
+  await page.evaluate(()=>DSW.bubble.hideBubble());
+  await page.waitForFunction(()=>testActions.filter(x=>x==='reward').length===1);
+  assert.match(await page.locator('.usage-mode').innerText(),/120 tokens/);
+  await page.evaluate(()=>testEvents.push({id:'rice-turn',kind:'turn',source:'Codex',tokens:{input:100,output:20}}));
+  await page.waitForFunction(()=>testEvents.length===0);
+  assert.equal(await page.evaluate(()=>testActions.filter(x=>x==='reward').length),1,'duplicate delivery cannot reward twice');
+  await page.evaluate(()=>{DSW.bubble.hideBubble();testSettings.riceOnCompletion=false;});
   await page.evaluate(()=>{DSW.modular.applyConfig({rows:[{blocks:[{kind:'text',text:'自定义台词'}]},{blocks:[{kind:'balance',supplier:''}]}]});DSW.bubble.showBubble();});
   await page.waitForFunction(()=>document.querySelector('.dshw-bmodular')?.textContent.includes('剩余 74%'));
   assert.match(await page.locator('.dshw-bmodular').innerText(),/自定义台词/);
@@ -133,15 +147,29 @@ try{
   assert.equal(await physics.locator('.tableware.rice').count(),0,'keyboard explicitly feeds');
   await physics.screenshot({path:'tests/artifacts/fed-2.3.png'});
   await physics.evaluate(()=>WhalePhysics.clear());assert.equal(await physics.locator('.tableware').count(),0);
+  for(const left of [false,true]){
+    await physics.evaluate(left=>{WhalePhysics.sync({x:500,y:400,width:240,height:240,left,sound:false,floor:900,monitor:'test',action:'reward'});for(let i=0;i<500;i++)WhalePhysics.simulate(1/120);},left);
+    const box=await physics.locator('.tableware.rice').boundingBox();
+    const target=await physics.evaluate(()=>{const p=WhalePhysics.bodies[0],f=WhalePhysics.face();return{x:f.x,y:f.y+p.h*.22};});
+    await physics.mouse.move(box.x+box.width/2,box.y+box.height/2);await physics.mouse.down();
+    await physics.mouse.move(target.x,target.y,{steps:12});await physics.mouse.up();
+    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'release rice at face feeds in either orientation');
+    await physics.evaluate(()=>WhalePhysics.clear());
+  }
   await physics.close();
   await page.setViewportSize({width:600,height:720});await page.goto(url+'/html/config.html');
   await page.waitForSelector('.companion-account');
   assert.equal(await page.locator('.companion-account').count(),2);
   await page.locator('#companionCodex').check();await page.waitForFunction(()=>testSettings.codexEnabled);
+  assert.equal(await page.locator('#companionRice').isChecked(),false);
+  await page.locator('#companionRice').check();await page.waitForFunction(()=>testSettings.riceOnCompletion);
   await page.locator('#companionPlacement').selectOption('above');await page.waitForFunction(()=>testSettings.notificationPlacement==='above');
   await page.screenshot({path:'tests/artifacts/settings-2.3.png',fullPage:true});
   await page.getByRole('button',{name:'桌宠外观',exact:true}).click();
   assert.ok(await page.getByRole('heading',{name:'挂件配置',exact:true}).isVisible());
+  await page.locator('#sound-pot_land').selectOption('none');await page.waitForFunction(()=>testSettings.componentSounds.pot_land==='none');
+  await page.locator('#import-feed').click();await page.waitForFunction(()=>testSettings.componentSounds.feed==='custom:feed-123.wav');
+  assert.equal(await page.locator('#sound-feed').inputValue(),'custom:feed-123.wav');
   await page.getByRole('button',{name:'气泡与台词',exact:true}).click();
   assert.ok(await page.getByRole('heading',{name:'台词管理',exact:true}).isVisible());
   await page.locator('#companionFont').fill('KaiTi');await page.locator('#companionFont').press('Tab');

@@ -14,6 +14,8 @@
     <div class="companion-tools"><button id="companionRefresh" type="button">刷新额度</button><span id="quotaStatus" class="companion-status">正在连接…</span></div>
     <div id="companionAccounts" class="companion-accounts"></div>
     <label class="companion-toggle"><input type="checkbox" id="companionNotify">整轮对话结束后推送 Token / 费用</label>
+    <label class="companion-toggle"><input type="checkbox" id="companionRice">显示整轮 Token 提示时，掉落一份大白饭</label>
+    <p class="companion-note">默认关闭。仅成功完成一轮并自动展示用量时掉一份；手动查看历史、中断、失败不掉饭。等待原台词结束，白饭落在角色前面，点击或拖到脸部松手才吃。已有 12 件餐具时跳过，不覆盖用量提示。</p>
     <label class="companion-toggle"><input type="checkbox" id="companionCodex">读取本机 Codex 的整轮结束事件（可关闭）</label>
     <p class="companion-note">一次用户输入到 Codex 最终完成算一轮；中间的工具调用、多次模型请求不弹提示。只读本机用量日志，不读取密钥。关闭后仍显示 Magpie 额度，但不伪造整轮通知。费用仅在 Magpie 完整记录与本轮用量匹配时显示。</p>
     <label for="companionPlacement">用量提示位置</label><select id="companionPlacement"><option value="inside">肥鱼对话气泡里面（默认）</option><option value="above">气泡上方（空间不足时放回气泡内）</option></select><p class="companion-note">自动提示等待当前台词结束，不遮盖气泡。完整缓存、推理用量可在下方历史中查看。</p>
@@ -37,7 +39,16 @@
     <p class="whale-font-preview">大肥鱼吃饭啦 · 12,345 tokens · 剩余 80%</p>
     <p class="companion-note">教程同款为内置「星期八de電子日記」（XQBDDZRJ），无需安装。修改后自动保存，统一应用于额度、台词和用量提示。不存在的字体会回退到微软雅黑；长文字自动缩小以留在气泡内。自定义气泡模块单独指定的字体保持不变。</p><p id="companionFontStatus" role="status"></p>`;
   content.appendChild(fontPanel);
-  const groups=[[panel],[appearance],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
+  const soundEvents={pot_land:"铁盆砸落 / 叠上头顶",pot_tap:"点击敲盆",pot_off:"摘下铁盆",rice_land:"白饭落地 / 碰撞",feed:"开始进食"};
+  const soundPanel=document.createElement("section");soundPanel.className="card companion-panel";
+  soundPanel.innerHTML='<h2>组件音效</h2><p class="companion-note">每种交互独立选择音效，播放跟随桌宠的声音总开关和音量。铁砧是内置合成金属重击声，并非游戏原音。可导入自己的 WAV / MP3 / OGG / FLAC / M4A（每个不超过 8 MiB）；导入后复制到本软件 data，移动原文件不影响使用。</p>';
+  for(const [key,label] of Object.entries(soundEvents)){
+    const row=document.createElement("div");row.className="component-sound-row";
+    row.innerHTML=`<label for="sound-${key}">${label}</label><select id="sound-${key}"><option value="default">原版音效</option><option value="anvil">铁砧 · 金属重击</option><option value="none">此项静音</option></select><div class="companion-tools"><button type="button" id="preview-${key}">试听</button><button type="button" id="import-${key}">导入音效</button></div>`;
+    soundPanel.appendChild(row);
+  }
+  const soundStatus=document.createElement("p");soundStatus.id="componentSoundStatus";soundStatus.className="companion-status";soundStatus.setAttribute("role","status");soundPanel.appendChild(soundStatus);content.appendChild(soundPanel);
+  const groups=[[panel],[appearance,soundPanel],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
   ["额度概览","桌宠外观","气泡与台词","进阶设置"].forEach((name,i)=>{
     const b=document.createElement("button");b.type="button";b.textContent=name;
     b.onclick=()=>{groups.forEach((g,j)=>g.forEach(e=>{if(e)e.hidden=i!==j;}));Array.from(nav.children).forEach((e,j)=>{e.classList.toggle("is-active",i===j);e.setAttribute("aria-current",i===j?"page":"false");});};nav.appendChild(b);
@@ -78,7 +89,7 @@
     if(!$("companionFontScale").reportValidity()||!$("companionPort").reportValidity()||!$("companionSeconds").reportValidity())return;
     saving=true;
     try {
-      settings=await invoke("save_companion_settings",{settings:{...settings,accountId:$("companionAccount").value,notifications:$("companionNotify").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100}});
+      settings=await invoke("save_companion_settings",{settings:{...settings,accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
       $("companionSaveStatus").textContent="已保存，桌宠立即生效";$("companionFontStatus").textContent="字体已保存，桌宠立即生效";H.applyFont(settings,document);await refresh();
     }catch(e){$("companionSaveStatus").textContent="保存失败："+String(e);$("companionFontStatus").textContent="保存失败："+String(e);}finally{saving=false;if(saveAgain){saveAgain=false;save();}}
   }
@@ -89,13 +100,20 @@
     r.history.forEach(n=>{const row=text($("companionHistory"),"article","");text(row,"strong",H.noticeTitle(n)+" · "+H.number(n.tokens.input+n.tokens.output)+" tokens");text(row,"div",n.model+" · "+H.noticeCost(n));text(row,"small",new Date(n.at).toLocaleString()+" · 输入 "+H.number(n.tokens.input)+" / 输出 "+H.number(n.tokens.output)+" / 缓存 "+H.number(n.tokens.cached)+" / 推理 "+H.number(n.tokens.reasoning)+"（已含）");});
   }
   $("companionRefresh").onclick=refresh;$("companionSave").onclick=save;
-  ["companionAccount","companionNotify","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
+  ["companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
   function previewFont(){H.applyFont({fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100},document);}
   $("companionFont").oninput=previewFont;$("companionFontScale").oninput=previewFont;
   $("companionFontReset").onclick=()=>{$("companionFont").value="Microsoft YaHei UI";$("companionFontScale").value=100;previewFont();save();};
   $("companionTutorialFont").onclick=()=>{$("companionFont").value="dsw-tutorial";previewFont();save();};
+  function setSound(key,value){const select=$("sound-"+key);if(value.startsWith("custom:")&&!Array.from(select.options).some(o=>o.value===value))select.add(new Option("已导入自定义音效",value));select.value=value;}
+  for(const key of Object.keys(soundEvents)){
+    $("sound-"+key).onchange=save;
+    $("preview-"+key).onclick=async()=>{try{window.WhaleComponentAudio.stop();const played=await window.WhaleComponentAudio.play(key,.5,$("sound-"+key).value);soundStatus.textContent=played?"正在试听 · 50% 音量":"此项已静音";}catch(e){soundStatus.textContent="音效无法播放，请重新导入："+String(e);}};
+    $("import-"+key).onclick=async()=>{const button=$("import-"+key);button.disabled=true;try{const path=await invoke("pick_audio_file");if(!path)return;const choice=await invoke("import_component_sound",{event:key,path});setSound(key,choice);await save();soundStatus.textContent="音效已复制到本软件，选择已保存";}catch(e){soundStatus.textContent="导入失败："+String(e);}finally{button.disabled=false;}};
+  }
   invoke("get_companion_settings").then(s=>{
-    settings=s;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
+    for(const key of Object.keys(soundEvents))setSound(key,s.componentSounds?.[key]||(key==="pot_land"?"anvil":"default"));
+    settings=s;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
     invoke("get_companion_history").then(status);
   }).catch(e=>{$("quotaStatus").textContent=String(e);});
   window.__TAURI__?.event?.listen("companion-status",e=>status(e.payload));

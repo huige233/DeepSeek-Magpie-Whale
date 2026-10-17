@@ -6,11 +6,11 @@
     if(stopped||!DSW.invoke||busy&&!action)return;
     busy=true;const r=DSW.dom.img.getBoundingClientRect();
     try{await DSW.invoke("sync_physics",{pet:{x:r.x,y:r.y,width:r.width,height:r.height,left:DSW.state.h==="left",sound:!!DSW.flags.soundOn,volume:DSW.flags.soundVol||0},action:action||null});}
-    catch(e){if(action)speak("餐具窗口暂时不可用，请重启桌宠再试。");}
+    catch(e){if(action&&action!=="reward")speak("餐具窗口暂时不可用，请重启桌宠再试。");else console.warn("自动掉饭暂不可用",String(e));}
     finally{busy=false;}
   }
   function action(name){
-    if(["feed","pot","clear"].includes(name)){sync(name);return;}
+    if(["feed","pot","clear","reward"].includes(name)){sync(name);return;}
     if(name==="usage"){DSW.magpie.showRecent();return;}
     if(name==="pat"){DSW.expression.enterShy();speak("摸摸可以，别把我的铁盆塔碰倒啦～");}
     if(name==="talk")speak(DSW.widgetConfig.pickDialogueLine()||"我在呢，大肥鱼随时待命！");

@@ -1,0 +1,1 @@
+anvil.wav: original procedural metal-impact sound, synthesized for this project. Not a Minecraft recording or extracted game asset. Distributed under the repository MIT code license.

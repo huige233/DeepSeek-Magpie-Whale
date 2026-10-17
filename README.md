@@ -1,12 +1,12 @@
 # DeepSeek Magpie Whale · Windows 桌宠
 
-## Magpie 交互版 2.3.0（2026-10-17）
+## Magpie 交互版 2.4.0（2026-10-17）
 
 - 点击额度保留原版三行气泡，字体有边界保护。
 - 配置 > 气泡与台词中可选择「使用教程同款」内置字体（星期八de電子日記 / XQBDDZRJ）、系统字体或输入字体名称，字号 80%–140%，实时应用。
 - 只有 Codex 整轮完成／中断触发一次通知；中间请求、工具调用不提示，原生子代理不另弹通知。
 - 可选气泡内／气泡上方展示；自动提示排队，不压住当前台词。空间不足自动回到气泡内。
-- 白饭从当前显示器顶部落到肥鱼前方，点击才吃；碰头、拖放和等待均不会自动吃。进食时分离米饭层和金属盆体，逐口减少白饭并飞向嘴边；吃光后留下可拖动的空铁盆。
+- 白饭从当前显示器顶部落到肥鱼前方，点击或拖到脸部松手才吃；碰头、拖到其他位置和等待不会自动吃。进食时分离米饭层和金属盆体，逐口减少白饭并飞向嘴边；吃光后留下可拖动的空铁盆。
 - 铁盆采用 VK-1 的固定头顶锚点与 2/3 盆高层间距，关闭已佩戴盆的重力，逐帧跟随移动／翻转／缩放；上层后画，移除下层自动补位。
 - 物理层独立于原 625px 桌宠窗口，作为 Windows owned popup 始终位于肥鱼窗口上层，保持原拖拽吸附和屏幕位置。隐藏、清空、切换显示器会清理餐具。
 - Magpie 额度、Codex 日志均只读。不伪造订阅百分比扣减；不把不完整价格当整轮费用。
@@ -27,7 +27,7 @@
 | 来源 | 本项目使用 / 借鉴的部分 |
 | --- | --- |
 | [MeteorNOX/DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) | 主要代码基础：`For–WinDesktop` 分支的 Tauri 桌宠、原有气泡和设置系统、图片与内置字体；参考 Codex 用量展示思路。原代码许可证见 `LICENSE`。 |
-| [VKmich16/VK-1](https://github.com/VKmich16/VK-1) | `windows/dsh_pet.ps1` 的头顶铁盆锚定、2/3 盆高间距、堆叠次序及补位思路；米饭、铁盆和喂食音效素材。保留 `frontend/assets/feeding/LICENSE-VK1.txt`（MIT）。本版按用户需求改为点击才喂食，不采用超时自动吸食。 |
+| [VKmich16/VK-1](https://github.com/VKmich16/VK-1) | `windows/dsh_pet.ps1` 的头顶铁盆锚定、2/3 盆高间距、堆叠次序及补位思路；米饭、铁盆和喂食音效素材。保留 `frontend/assets/feeding/LICENSE-VK1.txt`（MIT）。本版按用户需求改为点击或送到脸部才喂食，不采用超时自动吸食。 |
 | [yetone/magpie](https://github.com/yetone/magpie) | 参考本机 `/v1/magpie/quotas` 和用量记录接口的数据结构；本项目是只读客户端，不修改 Magpie 账号和路由。 |
 
 上游还包含 cc-switch 供应商预设和 logo。图片、字体、音效、商标等第三方资源权利归原权利人，不因本项目代码许可证而变更。教程字体沿用上游 `font.woff2`，字体内部标识为 XQBDDZRJ，版权元数据为 NIPPER (WUHAN) TECHNOLOGY CO.,LTD.；代码 MIT 声明不构成额外字体商用授权。
@@ -233,3 +233,10 @@ scripts/                       # 一次性资源提取/同步脚本（预设、l
 本项目由原 DSH 插件 [DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget) 独立化改造而来，感谢原作者 [MeteorNOX](https://github.com/MeteorNOX) 的创意与实现；供应商预设与 logo 素材提取自 cc-switch。许可证请以原仓库为准。
 
 This project is derived from the original DSH extension [DeepSeek-Balance-Whale-Widget](https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget). Thanks to [MeteorNOX](https://github.com/MeteorNOX) for the original idea and implementation. Please refer to the original repository for licensing.
+
+## 2.4.0 interactions
+
+- Optional one-rice reward when an automatic successful Codex turn usage notice is displayed; default off. Manual history, interrupted turns and individual requests do not trigger it.
+- Rice may be clicked or delivered to the face and released; head contact does not eat.
+- Per-event component sound import and preview, including an original synthesized anvil-style sound (not a game recording).
+- Seven generated character main images are distributed separately for local use, not included in this public source. Character references: https://xn--pssy23gqgbz2d718b.com/ and https://github.com/lmy414/bluedafeiyu ; reference image archive: https://github.com/lmy414/ai-girl-stickers . Site code licenses do not license character artwork.

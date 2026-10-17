@@ -23,6 +23,10 @@
   }
   function noticeTitle(n) { return n.source+" · "+(n.interrupted ? "已中断 / 失败" : n.kind==="turn" ? "本轮完成" : "请求完成"); }
   function noticeCost(n) { return typeof n.cost==="number" ? "参考费用 $"+n.cost.toFixed(6) : "未提供本轮费用"; }
+  function claimCompletionRice(settings,n,manual,claimed) {
+    if(manual||!settings.notifications||!settings.riceOnCompletion||n.kind!=="turn"||n.interrupted||!n.id||claimed.has(n.id))return false;
+    claimed.add(n.id);return true;
+  }
   function applyFont(settings, doc) {
     if(!doc?.documentElement)return;
     const family=String(settings.fontFamily||"Microsoft YaHei UI").replace(/[\x00-\x1f]/g,"").slice(0,100);
@@ -30,5 +34,5 @@
     doc.documentElement.style.setProperty("--companion-font-scale",String(Math.max(.8,Math.min(1.4,Number(settings.fontScale)||1))));
     if(doc.fonts)doc.fonts.load('700 18px '+JSON.stringify(family)).then(()=>doc.dispatchEvent(new Event("companion-font-ready"))).catch(()=>{});
   }
-  root.WhaleCompanion = {applyFont, accountId, selected, windows, tightest, stale, number, reset, noticeTitle, noticeCost};
+  root.WhaleCompanion = {claimCompletionRice, applyFont, accountId, selected, windows, tightest, stale, number, reset, noticeTitle, noticeCost};
 })(typeof window === "undefined" ? globalThis : window);
