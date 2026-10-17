@@ -13,6 +13,7 @@ pub struct Settings {
     pub port: u16,
     pub notifications: bool,
     pub rice_on_completion: bool,
+    pub character_dialogue: bool,
     pub codex_enabled: bool,
     pub notification_seconds: u32,
     pub notification_placement: String,
@@ -21,7 +22,7 @@ pub struct Settings {
     pub component_sounds: HashMap<String, String>,
 }
 impl Default for Settings {
-    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new() } }
+    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new() } }
 }
 fn settings_path() -> PathBuf { app_data_dir().join("magpie.json") }
 #[tauri::command]
@@ -330,6 +331,9 @@ mod tests {
         assert_eq!(s.font_family,"Microsoft YaHei UI");assert_eq!(s.font_scale,1.0);
         assert!(s.codex_enabled);assert_eq!(s.notification_placement,"inside");
         assert!(!s.rice_on_completion);
+        assert!(s.character_dialogue);
+        let custom: Settings=serde_json::from_value(json!({"characterDialogue":false,"accountId":"keep"})).unwrap();
+        assert!(!custom.character_dialogue);assert_eq!(custom.account_id,"keep");
         let enabled: Settings=serde_json::from_value(json!({"riceOnCompletion":true})).unwrap();
         assert!(enabled.rice_on_completion);
     }

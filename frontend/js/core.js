@@ -253,7 +253,9 @@ window.DSW = window.DSW || {};
             map[s] = true;
           });
           m.states = map;
-          prefetchMain(body);
+          return Promise.all(Object.keys(map).map(function (state) {
+            return prefetchState(body, state);
+          }));
         })
         .catch(function (err) {
           console.error("读取挂件状态清单失败：", body, err);
@@ -274,11 +276,11 @@ window.DSW = window.DSW || {};
     }
 
     // 预取本组 main：缺失状态回退 main 时可同步命中缓存，避免切换闪烁。
-    function prefetchMain(body) {
-      var key = body + ":main";
+    function prefetchState(body, state) {
+      var key = body + ":" + state;
       if (cache[key]) return;
       var gen = generation;
-      DSW.invoke("read_widget_image", { group: body, state: "main" })
+      return DSW.invoke("read_widget_image", { group: body, state: state })
         .then(function (dataUrl) {
           if (dataUrl && gen === generation) cache[key] = dataUrl;
         })

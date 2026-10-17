@@ -48,9 +48,9 @@ pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>)
 }
 
 #[tauri::command]
-pub fn physics_feedback(window: WebviewWindow, count: usize, feeding: bool, message: Option<String>) {
+pub fn physics_feedback(window: WebviewWindow, count: usize, feeding: bool, message: Option<String>, cue: Option<String>) {
     if window.label() != "physics" { return; }
-    let _ = window.emit_to("widget", "physics-state", json!({"count":count,"feeding":feeding,"message":message}));
+    let _ = window.emit_to("widget", "physics-state", json!({"count":count,"feeding":feeding,"message":message,"cue":cue}));
     if count == 0 { let _ = window.set_ignore_cursor_events(true); let _ = window.hide(); }
 }
 

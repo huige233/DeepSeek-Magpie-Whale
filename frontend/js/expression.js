@@ -217,8 +217,9 @@ window.DSW = window.DSW || {};
   }
 
   // 以台词气泡展示心情提示。
-  function showMoodBubble(text) {
-    DSW.bubble.showDialogueLine(text);
+  function showMoodBubble(text, cue) {
+    if (flags.usageVisible) return;
+    DSW.bubble.showDialogueLine(DSW.characters?.pick(cue, text) ?? text);
   }
 
   // 重置主状态下的点击序列计数。
@@ -317,7 +318,7 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_ANGRY);
-    showMoodBubble("你再摸人家就生气了喵 (╬ Ò﹏Ó)");
+    showMoodBubble("你再摸人家就生气了喵 (╬ Ò﹏Ó)", "angry");
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;
       exitAngry();
@@ -347,11 +348,11 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_DISAPPOINTED);
-    showMoodBubble("鲸鲸没人要了喵 (╥﹏╥)");
+    showMoodBubble("鲸鲸没人要了喵 (╥﹏╥)", "lonely");
     flags.lonelyCarouselTimer = setInterval(function () {
       const line =
         LONELY_LINES[Math.floor(Math.random() * LONELY_LINES.length)];
-      showMoodBubble(line);
+      showMoodBubble(line, "lonely");
     }, C.LONELY_CAROUSEL_MS);
     flags.clickLog = [];
     resetWhaleClickSequence();
@@ -364,7 +365,7 @@ window.DSW = window.DSW || {};
     clearMoodTimers();
     clearHoverTimer();
     setIcon(getPressIcon());
-    showMoodBubble("你终于想起本鲸了喵 (=￣ω￣=)");
+    showMoodBubble("你终于想起本鲸了喵 (=￣ω￣=)", "return");
     resetWhaleClickSequence();
     DSW.widgetConfig.scheduleNextDialogue();
     resetIdle();
@@ -387,7 +388,7 @@ window.DSW = window.DSW || {};
     resetWhaleClickSequence();
     DSW.widgetConfig.pauseDialogue();
     setIcon(C.IMG_SHY);
-    showMoodBubble("主人摸本鲸头了喵 (≧◡≦)♡");
+    showMoodBubble("主人摸本鲸头了喵 (≧◡≦)♡", "shy");
     flags.moodTimer = setTimeout(function () {
       flags.moodTimer = null;
       exitShy(false);
@@ -452,7 +453,7 @@ window.DSW = window.DSW || {};
       flags.clickLog.length >= thresholds.warn &&
       flags.clickLog.length < thresholds.limit
     ) {
-      showMoodBubble("你再摸人家就生气了喵");
+      showMoodBubble("你再摸人家就生气了喵", "warn");
       return;
     }
     if (flags.clickLog.length >= thresholds.limit) {

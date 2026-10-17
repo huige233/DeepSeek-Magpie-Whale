@@ -30,7 +30,9 @@
   const appearance=Array.from(content.children).find(e=>e.querySelector("h2")?.textContent==="挂件配置");
   const system=Array.from(content.children).find(e=>e.querySelector("h2")?.textContent==="系统配置");
   const fontPanel=document.createElement("section");fontPanel.className="card companion-panel";
-  fontPanel.innerHTML=`<h2>气泡字体</h2>
+  fontPanel.innerHTML=`<h2>气泡字体与角色台词</h2>
+    <label class="companion-toggle"><input type="checkbox" id="characterDialogue">七位 AI 娘使用角色专属台词</label>
+    <p class="companion-note">按当前角色切换闲聊、摸头、害羞、生气、喂饭等文案。原自定义台词不被改写；关闭后恢复原台词。肥鱼和其他自定义角色不受影响。</p>
     <label for="companionFont">字体名称（可输入已安装的字体）</label>
     <input id="companionFont" class="companion-font-input" list="companionFonts" maxlength="100" placeholder="Microsoft YaHei UI">
     <datalist id="companionFonts"><option value="dsw-tutorial">使用教程同款 · 星期八de電子日記</option><option value="Microsoft YaHei UI">微软雅黑</option><option value="DengXian">等线</option><option value="SimHei">黑体</option><option value="SimSun">宋体</option><option value="KaiTi">楷体</option><option value="FangSong">仿宋</option></datalist>
@@ -89,7 +91,7 @@
     if(!$("companionFontScale").reportValidity()||!$("companionPort").reportValidity()||!$("companionSeconds").reportValidity())return;
     saving=true;
     try {
-      settings=await invoke("save_companion_settings",{settings:{...settings,accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
+      settings=await invoke("save_companion_settings",{settings:{...settings,accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,characterDialogue:$("characterDialogue").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
       $("companionSaveStatus").textContent="已保存，桌宠立即生效";$("companionFontStatus").textContent="字体已保存，桌宠立即生效";H.applyFont(settings,document);await refresh();
     }catch(e){$("companionSaveStatus").textContent="保存失败："+String(e);$("companionFontStatus").textContent="保存失败："+String(e);}finally{saving=false;if(saveAgain){saveAgain=false;save();}}
   }
@@ -100,7 +102,7 @@
     r.history.forEach(n=>{const row=text($("companionHistory"),"article","");text(row,"strong",H.noticeTitle(n)+" · "+H.number(n.tokens.input+n.tokens.output)+" tokens");text(row,"div",n.model+" · "+H.noticeCost(n));text(row,"small",new Date(n.at).toLocaleString()+" · 输入 "+H.number(n.tokens.input)+" / 输出 "+H.number(n.tokens.output)+" / 缓存 "+H.number(n.tokens.cached)+" / 推理 "+H.number(n.tokens.reasoning)+"（已含）");});
   }
   $("companionRefresh").onclick=refresh;$("companionSave").onclick=save;
-  ["companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
+  ["characterDialogue","companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
   function previewFont(){H.applyFont({fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100},document);}
   $("companionFont").oninput=previewFont;$("companionFontScale").oninput=previewFont;
   $("companionFontReset").onclick=()=>{$("companionFont").value="Microsoft YaHei UI";$("companionFontScale").value=100;previewFont();save();};
@@ -113,7 +115,7 @@
   }
   invoke("get_companion_settings").then(s=>{
     for(const key of Object.keys(soundEvents))setSound(key,s.componentSounds?.[key]||(key==="pot_land"?"anvil":"default"));
-    settings=s;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
+    settings=s;$("characterDialogue").checked=s.characterDialogue!==false;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
     invoke("get_companion_history").then(status);
   }).catch(e=>{$("quotaStatus").textContent=String(e);});
   window.__TAURI__?.event?.listen("companion-status",e=>status(e.payload));

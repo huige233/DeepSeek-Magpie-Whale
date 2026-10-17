@@ -294,6 +294,7 @@ window.DSW = window.DSW || {};
 
   // 选择下一条台词（random / carousel）。
   function pickDialogueLine() {
+    if (DSW.characters?.lines("idle")) return DSW.characters.pick("idle");
     if (!flags.dialogueLines.length) return null;
     if (flags.dialogueMode === "random") {
       return flags.dialogueLines[
@@ -316,6 +317,7 @@ window.DSW = window.DSW || {};
   }
 
   function pickExhaustedPromptLine() {
+    if (DSW.characters?.lines("exhausted")) return DSW.characters.pick("exhausted");
     if (!EXHAUSTED_LINES.length) return null;
     var line =
       EXHAUSTED_LINES[flags.exhaustedPromptIndex % EXHAUSTED_LINES.length];
@@ -382,7 +384,7 @@ window.DSW = window.DSW || {};
       clearTimeout(flags.dialogueTimer);
       flags.dialogueTimer = null;
     }
-    if (!flags.dialogueLines.length) return;
+    if (!flags.dialogueLines.length && !DSW.characters?.lines("idle")) return;
     const delay = typeof retryMs === "number" ? retryMs : nextDialogueDelayMs();
     flags.dialogueTimer = setTimeout(function () {
       flags.dialogueTimer = null;

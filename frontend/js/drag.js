@@ -149,7 +149,7 @@ window.DSW = window.DSW || {};
 
     if (flags.mood === "angry") {
       if (clickAllowed && !flags.drag.moved)
-        DSW.expression.showMoodBubble("再也不理你了喵 (｀へ´*)");
+        DSW.expression.showMoodBubble("再也不理你了喵 (｀へ´*)", "angry");
       DSW.audio.pressUp();
       if (flags.drag.moved) snapAfterDrag();
       return;

@@ -51,6 +51,11 @@ pub fn sync_group_meta(group: &str) -> AppResult<PicGroupMeta> {
         return Err(AppError::not_found(format!("挂件组不存在：{}", group)));
     }
     let mut states = BTreeMap::new();
+    if let Some(atlas) = super::atlas::manifest(&dir) {
+        for state in atlas.frames.keys() {
+            states.insert(state.clone(), PicAsset { file: "expressions.png".to_string() });
+        }
+    }
     for state in WidgetState::ALL {
         if dir.join(state.file_name()).is_file() {
             states.insert(
@@ -161,6 +166,9 @@ pub fn delete_group(group: &str) -> AppResult<()> {
 pub fn read_image_bytes(group: &str, state: WidgetState) -> AppResult<Vec<u8>> {
     let group = widget_image::sanitize_group(group)?;
     let path = paths::pic_root().join(&group).join(state.file_name());
+    if !path.is_file() && super::atlas::manifest(path.parent().unwrap()).is_some_and(|a|a.frames.contains_key(state.key())) {
+        return super::atlas::frame(path.parent().unwrap(), state.key());
+    }
     fs::read(&path).map_err(|e| {
         log::warn!("读取挂件图片失败：{}（{}）", path.display(), e);
         AppError::io(format!("读取图片失败: {}", e))
@@ -170,6 +178,44 @@ pub fn read_image_bytes(group: &str, state: WidgetState) -> AppResult<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn atlas_frames_are_isolated_and_explicit_png_overrides_win() {
+        use image::{GenericImageView, Rgba, RgbaImage};
+        let group = format!("atlas-test-{}", std::process::id());
+        let dir = paths::pic_root().join(&group);
+        fs::create_dir_all(&dir).unwrap();
+        let main = encode(&sample(16,16), image::ImageFormat::Png);
+        save_image(&group, WidgetState::Main, &main).unwrap();
+        let sheet = image::DynamicImage::ImageRgba8(RgbaImage::from_fn(12,12, |x,y| Rgba([(x/4) as u8,(y/4) as u8,99,255])));
+        fs::write(dir.join("expressions.png"), encode(&sheet, image::ImageFormat::Png)).unwrap();
+        fs::write(dir.join("expressions.json"), r#"{"frames":{"angry":[4,8,4,4],"shy":[8,4,4,4]}}"#).unwrap();
+        assert_eq!(group_states(&group).unwrap().len(),3);
+        let frame = image::load_from_memory(&read_image_bytes(&group,WidgetState::Angry).unwrap()).unwrap();
+        assert_eq!(frame.dimensions(),(4,4));
+        assert_eq!(frame.get_pixel(0,0),Rgba([1,2,99,255]));
+        fs::write(dir.join("expressions.json"), r#"{"frames":{"angry":[4,8,4,4],"shy":[8,4,4,4]},"placement":[1,1,2,2]}"#).unwrap();
+        let registered = image::load_from_memory(&read_image_bytes(&group,WidgetState::Angry).unwrap()).unwrap();
+        assert_eq!(registered.dimensions(),(4,4));
+        assert_eq!(registered.get_pixel(0,0)[3],0);
+        assert_eq!(registered.get_pixel(1,1),Rgba([1,2,99,255]));
+        fs::write(dir.join("expressions.json"), r#"{"frames":{"angry":[4,8,4,4]},"placement":[0,0,4,4],"placements":{"angry":[2,2,1,1]}}"#).unwrap();
+        let per_state = image::load_from_memory(&read_image_bytes(&group,WidgetState::Angry).unwrap()).unwrap();
+        assert_eq!(per_state.get_pixel(0,0)[3],0);
+        assert_eq!(per_state.get_pixel(2,2),Rgba([1,2,99,255]));
+        assert_eq!(read_image_bytes(&group,WidgetState::Main).unwrap(),main);
+        save_image(&group,WidgetState::Angry,&main).unwrap();
+        assert_eq!(read_image_bytes(&group,WidgetState::Angry).unwrap(),main);
+        assert_eq!(group_meta(&group).unwrap().states["angry"].file,"angry.png");
+        fs::write(dir.join("expressions.json"), r#"{"frames":{"shy":[10,10,4,4]}}"#).unwrap();
+        assert!(read_image_bytes(&group,WidgetState::Shy).is_err());
+        fs::write(dir.join("expressions.json"), r#"{"frames":{"../bad":[0,0,4,4]}}"#).unwrap();
+        assert!(super::super::atlas::manifest(&dir).is_none());
+        assert_eq!(group_states(&group).unwrap().len(),2);
+        fs::write(dir.join("expressions.json"), b"broken").unwrap();
+        assert!(super::super::atlas::manifest(&dir).is_none());
+        fs::remove_dir_all(dir).unwrap();
+    }
 
     fn encode(img: &image::DynamicImage, format: image::ImageFormat) -> Vec<u8> {
         let mut out = Vec::new();

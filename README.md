@@ -1,6 +1,6 @@
 # DeepSeek Magpie Whale · Windows 桌宠
 
-## Magpie 交互版 2.4.0（2026-10-17）
+## Magpie 交互版 2.5.0（2026-10-17）
 
 - 点击额度保留原版三行气泡，字体有边界保护。
 - 配置 > 气泡与台词中可选择「使用教程同款」内置字体（星期八de電子日記 / XQBDDZRJ）、系统字体或输入字体名称，字号 80%–140%，实时应用。
@@ -240,3 +240,14 @@ This project is derived from the original DSH extension [DeepSeek-Balance-Whale-
 - Rice may be clicked or delivered to the face and released; head contact does not eat.
 - Per-event component sound import and preview, including an original synthesized anvil-style sound (not a game recording).
 - Seven generated character main images are distributed separately for local use, not included in this public source. Character references: https://xn--pssy23gqgbz2d718b.com/ and https://github.com/lmy414/bluedafeiyu ; reference image archive: https://github.com/lmy414/ai-girl-stickers . Site code licenses do not license character artwork.
+
+## 2.5.0 七位 AI 娘互动
+
+- 可选本地表情包：Claude、GLM、GPT、Grok、Qwen、Gemini、Kimi 各九态（原主图、三帧眨眼、摸头、害羞、生气、失落、疲惫）。基于各自原主图生成，保留发色、配饰、服装和 Q 版画风；未改写原主图。生成差分不是逐像素手绘复制。
+- `data/pic/<角色>-Chibi/expressions.png` 与 `expressions.json` 构成可选图集，后端按清单读取帧并校准到原主图的显示范围，前端预取防止首次眨眼等待。已有同名状态 PNG 优先；缺少表情仍回退本角色主图。
+- 七套原创陪伴文案共 154 条，覆盖闲聊、摸头、害羞、生气、连点提醒、失落、回来、开饭、吃饱、疲惫。角色性格是桌宠创作设定，不代表模型实际能力或官方人设。
+- 设置 → 气泡与台词 →「七位 AI 娘使用角色专属台词」默认开启；关闭恢复用户原台词，不覆盖原自定义内容，肥鱼及其他图片组不受影响。
+- 修复高分辨率自定义主图点击蒙版未缩放的问题；防止旧角色的异步蒙版覆盖新角色。自动心情台词不打断 Token 提示。
+- 美术参考沿用 2.4.0 中注明的社区来源。表情包附原参考链接、署名/许可情况及生成提示词；图像不随公开源码上传，也不把代码许可证当成美术授权。
+
+验证：`cargo test --manifest-path src-tauri/Cargo.toml --lib`；`node --test tests/companion.test.mjs tests/character-dialogue.test.mjs`；`node tests/browser.mjs`（需 Playwright/Edge）。设置 `WHALE_EXPRESSION_PACK` 为表情包的 `pic` 绝对目录，可加测 63 个实际渲染状态、自动三帧眨眼、镜像命中和专属台词。原生 smoke 测试需复制该素材包和测试音频到隔离 data，并用隔离 CODEX_HOME；不得对个人会话目录运行。smoke 中的用量核验是合成事件集成测试，不是用户真实对话目视核验。

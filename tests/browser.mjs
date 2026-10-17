@@ -157,6 +157,62 @@ try{
     await physics.evaluate(()=>WhalePhysics.clear());
   }
   await physics.close();
+  const petDir=process.env.WHALE_EXPRESSION_PACK;
+  if(petDir){
+    const preview=[];
+    for(const group of fs.readdirSync(petDir)){
+      const main='data:image/png;base64,'+fs.readFileSync(path.join(petDir,group,'main.png')).toString('base64');
+      const atlas='data:image/png;base64,'+fs.readFileSync(path.join(petDir,group,'expressions.png')).toString('base64');
+      const manifest=JSON.parse(fs.readFileSync(path.join(petDir,group,'expressions.json'),'utf8'));
+      const sprites=await page.evaluate(async({main,atlas,manifest})=>{
+        const img=new Image();img.src=atlas;await img.decode();const sprites={main};
+        for(const [state,r] of Object.entries(manifest.frames)){
+          const c=document.createElement('canvas');c.width=r[2];c.height=r[3];c.getContext('2d').drawImage(img,...r,...(manifest.placements?.[state]||manifest.placement||[0,0,r[2],r[3]]));sprites[state]=c.toDataURL();
+        }
+        return sprites;
+      },{main,atlas,manifest});
+      await page.evaluate(async({group,sprites})=>{
+        const original=DSW.invoke;
+        DSW.invoke=async(cmd,args)=>args?.group===group?(cmd==='widget_group_states'?Object.keys(sprites):cmd==='read_widget_image'?sprites[args.state]:original(cmd,args)):original(cmd,args);
+        DSW.flags.widgetBody=group;DSW.images.invalidate();DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=false;
+        DSW.expression.clearMoodTimers();DSW.expression.cancelBlink(false);DSW.characters.configure({characterDialogue:true});DSW.bubble.hideBubble();
+        await new Promise(r=>DSW.images.resolve(DSW.C.IMG_URL,r));DSW.expression.syncVisualState();DSW.hit.setupHitTest();
+      },{group,sprites});
+      await page.waitForFunction(()=>DSW.hit.hitReady);
+      assert.equal(await page.evaluate(()=>DSW.expression.isBlinkAllowed()),true,'blink allowed '+group);
+      const blink=await page.evaluate(async()=>{
+        const seen=[];const observer=new MutationObserver(()=>seen.push(DSW.dom.img.src));observer.observe(DSW.dom.img,{attributes:true,attributeFilter:['src']});
+        DSW.flags.blinkIntervalMinSec=1;DSW.flags.blinkIntervalMaxSec=1;DSW.expression.scheduleNextBlink();
+        await new Promise(r=>setTimeout(r,1700));observer.disconnect();DSW.expression.cancelBlink(true);return seen;
+      });
+      for(const state of ['half_closed_eyes','close_eyes','half_open_eyes'])assert.ok(blink.includes(sprites[state]),'automatic blink frame '+group+':'+state);
+      for(const [state,constant] of Object.entries({main:'IMG_URL',half_closed_eyes:'IMG_HALF_CLOSED_EYES',close_eyes:'IMG_CLOSE_EYES',half_open_eyes:'IMG_HALF_OPEN_EYES',stroking:'IMG_URL_PRESS',shy:'IMG_SHY',angry:'IMG_ANGRY',disappointed:'IMG_DISAPPOINTED',exhausted:'IMG_EXHAUSTED'})){
+        await page.evaluate(constant=>{DSW.expression.cancelBlink(false);DSW.expression.setIcon(DSW.C[constant]);},constant);
+        await page.waitForFunction(src=>DSW.dom.img.src===src,sprites[state]);
+        assert.ok(await page.evaluate(async()=>{await DSW.dom.img.decode();return DSW.dom.img.naturalWidth>0;}));
+      }
+      assert.ok(await page.evaluate(()=>{
+        const r=DSW.dom.img.getBoundingClientRect();
+        return ['left','right'].every(side=>{DSW.state.h=side;return DSW.hit.isWhaleHit({clientX:r.left+r.width*.5,clientY:r.top+r.height*.65});});
+      }),'high resolution hit mask both orientations '+group);
+      assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].idle.includes(DSW.widgetConfig.pickDialogueLine())));
+      await page.evaluate(()=>{DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.expression.syncVisualState();DSW.interactions.action('pat');});
+      await page.waitForFunction(src=>DSW.dom.img.src===src,sprites.shy);
+      assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].pat.some(t=>DSW.dom.textBox.textContent.includes(t))),'pat dialogue '+group);
+      await page.evaluate(()=>{DSW.flags.usageVisible=true;DSW.expression.showMoodBubble('must not interrupt','angry');DSW.flags.usageVisible=false;});
+      assert.ok(!await page.evaluate(()=>DSW.dom.textBox.textContent.includes('must not interrupt')));
+      await page.evaluate(()=>{__emit('physics-state',{count:1,feeding:true,message:'fallback',cue:'feed'});});
+      assert.ok(await page.evaluate(()=>DSW.characters.profiles[DSW.flags.widgetBody].feed.some(t=>DSW.dom.textBox.textContent.includes(t))),'feeding dialogue '+group);
+      preview.push({group,sprites});
+    }
+    const gallery=await browser.newPage({viewport:{width:1340,height:1140}});
+    await gallery.setContent('<style>body{margin:20px;background:#e9edf2;color:#263346;font:14px Georgia}h1{margin:0 0 20px}section{display:flex;align-items:center;height:145px;border-bottom:1px solid #b5c2d1}b{width:90px;flex-shrink:0}figure{margin:0;width:135px;text-align:center}img{display:block;width:126px;height:126px;object-fit:contain}figcaption{font:11px monospace}</style><h1>AI Girls / nine expression states / 2.5.0</h1>');
+    await gallery.evaluate(rows=>{for(const {group,sprites} of rows){const section=document.createElement('section'),title=document.createElement('b');title.textContent=group.replace('-Chibi','');section.append(title);for(const [state,src] of Object.entries(sprites)){const figure=document.createElement('figure'),img=document.createElement('img'),label=document.createElement('figcaption');img.src=src;label.textContent=state;figure.append(img,label);section.append(figure);}document.body.append(section);}},preview);
+    await gallery.evaluate(()=>Promise.all([...document.images].map(i=>i.decode())));
+    await gallery.screenshot({path:process.env.WHALE_EXPRESSION_PREVIEW||'tests/artifacts/expressions-2.5.png',fullPage:true});await gallery.close();
+    console.log('PASS: seven groups, 63 rendered states, own dialogue, mirrored click masks and usage speech guard.');
+  }
+
   await page.setViewportSize({width:600,height:720});await page.goto(url+'/html/config.html');
   await page.waitForSelector('.companion-account');
   assert.equal(await page.locator('.companion-account').count(),2);
@@ -172,6 +228,9 @@ try{
   assert.equal(await page.locator('#sound-feed').inputValue(),'custom:feed-123.wav');
   await page.getByRole('button',{name:'气泡与台词',exact:true}).click();
   assert.ok(await page.getByRole('heading',{name:'台词管理',exact:true}).isVisible());
+  assert.equal(await page.locator('#characterDialogue').isChecked(),true);
+  await page.locator('#characterDialogue').uncheck();await page.waitForFunction(()=>testSettings.characterDialogue===false);
+  await page.locator('#characterDialogue').check();await page.waitForFunction(()=>testSettings.characterDialogue===true);
   await page.locator('#companionFont').fill('KaiTi');await page.locator('#companionFont').press('Tab');
   await page.waitForFunction(()=>testSettings.fontFamily==='KaiTi');
   await page.locator('#companionFontScale').fill('130');await page.locator('#companionFontScale').press('Tab');

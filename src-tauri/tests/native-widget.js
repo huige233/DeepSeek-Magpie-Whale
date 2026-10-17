@@ -16,12 +16,34 @@
     const groups=await invoke('list_widget_groups');
     for(const model of ['Claude','GLM','GPT','Grok','Qwen','Gemini','Kimi']){
       const group=model+'-Chibi';check(groups.includes(group),'missing '+group);
-      check((await invoke('widget_group_states',{group})).includes('main'),'missing main '+group);
+      const states=await invoke('widget_group_states',{group});check(states.length===9,'nine states '+group);
       DSW.flags.widgetBody=group;DSW.images.invalidate?.();
       const src=await invoke('read_widget_image',{group,state:'main'});
       const img=new Image();img.src=src;await img.decode();check(img.width===img.height&&img.width>=610,'native image decode '+group);
+      const frames={main:src};
+      for(const state of states.filter(s=>s!=='main')){
+        const data=await invoke('read_widget_image',{group,state});const frame=new Image();frame.src=data;await frame.decode();
+        check(frame.width===(model==='Qwen'?400:418)&&frame.height===frame.width,'atlas crop '+group+':'+state);frames[state]=data;
+      }
+      check(new Set(Object.values(frames)).size===9,'nine distinct frames '+group);
+      DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=false;
+      await new Promise(r=>DSW.images.resolve(DSW.C.IMG_URL,r));await wait(50);
+      DSW.expression.syncVisualState();check(DSW.expression.isBlinkAllowed(),'blink enabled '+group);
+      DSW.expression.cancelBlink(false);
+      for(const [mood,state] of [['normal','main'],['shy','shy'],['angry','angry'],['disappointed','disappointed'],['exhausted','exhausted']]){
+        DSW.flags.mood=mood;DSW.flags.exhaustedMode=mood==='exhausted';DSW.expression.syncVisualState();await wait(50);
+        check(DSW.dom.img.src===frames[state],'native expression switch '+group+':'+state);
+      }
+      DSW.flags.mood='normal';DSW.flags.exhaustedMode=false;DSW.flags.pressing=true;DSW.expression.syncVisualState();await wait(50);
+      check(DSW.dom.img.src===frames.stroking,'native press frame '+group);DSW.flags.pressing=false;
+      DSW.expression.syncVisualState();DSW.expression.enterShy();await wait(50);check(DSW.dom.img.src===frames.shy,'shy action '+group);
+      DSW.expression.exitShy(false);DSW.expression.clearMoodTimers();DSW.expression.enterAngry();await wait(50);
+      check(DSW.dom.img.src===frames.angry,'angry action '+group);DSW.expression.exitAngry();DSW.expression.clearMoodTimers();
+      check(DSW.characters.profiles[group].idle.includes(DSW.widgetConfig.pickDialogueLine()),'character dialogue '+group);
+      await emit('smoke-report',{stage:'character-expressions',group,states:states.length,passed:true});
+
     }
-    DSW.flags.widgetBody='小鲸鱼';
+    DSW.flags.widgetBody='小鲸鱼';DSW.images.invalidate();DSW.expression.handleWidgetConfigChange();DSW.bubble.hideBubble();
     await emit('smoke-report',{stage:'seven-character-assets',passed:true});
     await wait(500);DSW.bubble.showBubble();
     await document.fonts.ready;

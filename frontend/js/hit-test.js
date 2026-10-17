@@ -10,10 +10,12 @@ window.DSW = window.DSW || {};
   "use strict";
 
   if (DSW.hit) return;
+  let generation = 0;
 
   // 初始化离屏命中画布：按当前挂件本体的主图采样（610x610）。
   // 经 DSW.images 解析，自定义挂件组使用自身文件夹的资源，避免沿用内置默认图。
   function setupHitTest() {
+    const current = ++generation;
     try {
       DSW.hit.hitReady = false;
       DSW.hit.hitCanvas = document.createElement("canvas");
@@ -22,8 +24,9 @@ window.DSW = window.DSW || {};
       DSW.images.resolve(DSW.C.IMG_URL, function (resolved) {
         const probe = new Image();
         probe.onload = function () {
+          if (current !== generation) return;
           try {
-            DSW.hit.hitCanvas.getContext("2d").drawImage(probe, 0, 0);
+            DSW.hit.hitCanvas.getContext("2d").drawImage(probe, 0, 0, 610, 610);
             DSW.hit.hitReady = true;
           } catch (err) {}
         };
@@ -42,7 +45,7 @@ window.DSW = window.DSW || {};
       let lx = ((e.clientX - r.left) / r.width) * 610;
       let ly = ((e.clientY - r.top) / r.height) * 610;
       if (lx < 0 || ly < 0 || lx >= 610 || ly >= 610) return false;
-      if (DSW.state.h === "left") lx = 610 - lx;
+      if (DSW.state.h === "left") lx = 609 - Math.floor(lx);
       const data = DSW.hit.hitCanvas
         .getContext("2d")
         .getImageData(Math.floor(lx), Math.floor(ly), 1, 1).data;

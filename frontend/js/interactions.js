@@ -12,14 +12,14 @@
   function action(name){
     if(["feed","pot","clear","reward"].includes(name)){sync(name);return;}
     if(name==="usage"){DSW.magpie.showRecent();return;}
-    if(name==="pat"){DSW.expression.enterShy();speak("摸摸可以，别把我的铁盆塔碰倒啦～");}
+    if(name==="pat"){DSW.expression.enterShy();speak(DSW.characters?.pick("pat","摸摸可以，别把我的铁盆塔碰倒啦～")||"摸摸可以，别把我的铁盆塔碰倒啦～");}
     if(name==="talk")speak(DSW.widgetConfig.pickDialogueLine()||"我在呢，大肥鱼随时待命！");
   }
   const follow=setInterval(()=>{if(count)sync();},80);
   window.__TAURI__?.event?.listen("pet-action",e=>action(e.payload));
   window.__TAURI__?.event?.listen("physics-state",e=>{
     count=e.payload.count;DSW.flags.feeding=e.payload.feeding;
-    if(e.payload.message)speak(e.payload.message);
+    if(e.payload.message)speak(DSW.characters?.pick(e.payload.cue,e.payload.message)||e.payload.message);
   });
   window.__TAURI__?.event?.listen("widget-visibility",e=>{if(!e.payload){count=0;DSW.flags.feeding=false;}});
   window.addEventListener("beforeunload",()=>{stopped=true;clearInterval(follow);});

@@ -13,7 +13,7 @@
     if(!pet?.sound)return;
     window.WhaleComponentAudio?.play(name,pet.volume||0).catch(e=>console.warn("组件音效播放失败",String(e)));
   }
-  function feedback(message) {invoke?.("physics_feedback",{count:bodies.length,feeding:bodies.some(p=>p.eating>0),message:message||null}).catch(()=>{});}
+  function feedback(message,cue) {invoke?.("physics_feedback",{count:bodies.length,feeding:bodies.some(p=>p.eating>0),message:message||null,cue:cue||null}).catch(()=>{});}
   function dimensions(p) {p.w=pet.width*(p.kind==="pot"?.94:.70);p.h=p.w*(p.kind==="pot"?.36:.72);}
   function head() {return {x:pet.x+pet.width*(pet.left?.40:.60),y:pet.y+pet.height*.34};}
   function face() {return {x:head().x,y:pet.y+pet.height*.64,rx:pet.width*.20,ry:pet.height*.13};}
@@ -62,7 +62,7 @@
   }
   function remove(p){p.el.remove();const i=bodies.indexOf(p);if(i>=0)bodies.splice(i,1);anchorStack();}
   function activate(p){if(p.kind==="rice"){if(!p.eating)beginEat(p);}else{p.spin=1.4;sound("pot_tap");}}
-  function beginEat(p) {if(p.eating)return;p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("饭送到啦，啊呜一大口白饭！");}
+  function beginEat(p) {if(p.eating)return;p.eating=1.6;p.bite=0;p.vx=p.vy=0;p.el.classList.add("eating");sound("feed");feedback("饭送到啦，啊呜一大口白饭！","feed");}
   function bite(p,n) {
     p.bite=n;
     // Only the food layer is masked; the metal rim and basin never shrink or disappear.
@@ -80,7 +80,7 @@
     p.el.innerHTML='<span class="crop"><img draggable="false" alt=""></span>';p.img=p.el.querySelector("img");
     p.img.src="../assets/feeding/iron_bowl.png";p.spin=.65;
     p.el.querySelector(".crop").animate([{transform:"scaleY(.15)"},{transform:"scaleY(1)"}],{duration:180,easing:"ease-out"});
-    p.el.title="吃空的铁盆：拖动、堆叠、点击敲盆；双击摘下";feedback("吃光啦！空铁盆可以拖到头顶叠起来，铛！");
+    p.el.title="吃空的铁盆：拖动、堆叠、点击敲盆；双击摘下";feedback("吃光啦！空铁盆可以拖到头顶叠起来，铛！","fed");
   }
   function simulate(dt) {
     if(!pet)return;
