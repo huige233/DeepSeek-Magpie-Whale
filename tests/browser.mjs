@@ -58,7 +58,11 @@ try{
   await page.evaluate(()=>{testSettings.fontScale=1;__emit('companion-settings-changed',testSettings);DSW.widgetConfig.applyScale(1.5);DSW.bubble.hideBubble();});
   await page.evaluate(()=>__emit('pet-action','feed'));
   assert.ok(await page.evaluate(()=>testCalls.includes('sync_physics')));
-  await page.evaluate(()=>{testEvents.push({id:'test-1',source:'Codex',kind:'turn',model:'test-model',tokens:{input:1600,output:240,cached:800,reasoning:100},cost:null,at:new Date().toISOString()});});
+  await page.evaluate(()=>{DSW.bubble.showDialogueLine('正在说话，请先等我说完');clearTimeout(DSW.flags.bubbleTimer);testEvents.push({id:'test-1',source:'Codex',kind:'turn',model:'test-model',tokens:{input:1600,output:240,cached:800,reasoning:100},cost:null,at:new Date().toISOString()});});
+  await page.waitForFunction(()=>testEvents.length===0);
+  assert.equal(await page.locator('.usage-mode').count(),0,'usage waits for existing dialogue instead of covering it');
+  assert.equal(await page.locator('.usage-toast').isVisible(),false);
+  await page.evaluate(()=>DSW.bubble.hideBubble());
   await page.waitForSelector('.usage-mode');
   assert.match(await page.locator('.usage-mode').innerText(),/1,840 tokens/);
   assert.equal(await page.locator('.usage-toast').isVisible(),false);
