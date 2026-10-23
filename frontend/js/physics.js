@@ -38,6 +38,8 @@
     // Contact of the rice mound (not the plate's centre) with the mouth area is sufficient.
     return y>pet.y+pet.height*(mouths[pet.group] ? .50 : .43) && ((x-f.x)/(f.rx+p.w*.38))**2+((y-f.y)/(f.ry+p.h*.18))**2<=1;
   }
+  function canAutoEat(p){return pet?.riceAutoEat!==false&&p.kind==='rice'&&atFace(p);}
+  function riceTitle(){return pet?.riceAutoEat===false?"点击白饭才开饭；已关闭送到嘴边自动吃（可在桌宠外观中开启）":"点击白饭，或送到角色嘴边立即开饭；不必松手，碰头、落地和等待不会自动吃";}
   function render(p) {
     p.el.style.width=p.w+"px";p.el.style.height=p.h+"px";
     p.el.style.transform=`translate(${p.x}px,${p.y}px) rotate(${p.angle}rad)`;
@@ -51,7 +53,7 @@
     const front=pet.x+pet.width/2<innerWidth/2?pet.x+pet.width+p.w*.60:pet.x-p.w*.60;
     p.x=Math.max(8,Math.min(innerWidth-p.w-8,(kind==="rice"?front:h.x)-p.w/2));p.y=-p.h;
     p.el.className="tableware "+kind;p.el.type="button";
-    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":"点击白饭，或送到角色脸前立即开饭；不必松手，碰头、落地和等待不会自动吃";
+    p.el.title=kind==="pot"?"拖动或抛掷铁盆；点击敲盆；双击摘下":riceTitle();
     p.el.innerHTML=kind==="rice"?'<span class="crop"><span class="rice-dish"></span><span class="rice-food"><img class="rice-grains" draggable="false" alt=""></span><img class="rice-basin" draggable="false" alt=""></span>':'<span class="crop"><img draggable="false" alt=""></span>';
     p.img=p.el.querySelector("img");
     p.el.querySelectorAll("img").forEach(img=>img.src="../assets/feeding/"+(kind==="pot"?"iron_bowl.png":"rice.png"));
@@ -80,12 +82,12 @@
     p.vx=Math.max(-1600,Math.min(1600,(x-grab.px)/dt));p.vy=Math.max(-1200,Math.min(1200,(y-grab.py)/dt));
     p.x=Math.max(-p.w*.2,Math.min(innerWidth-p.w*.8,x-grab.dx));p.y=y-grab.dy;
     grab.px=x;grab.py=y;grab.time=now;render(p);
-    if(p.kind==='rice'&&atFace(p))beginEat(p);
+    if(canAutoEat(p))beginEat(p);
   }
   function releaseGrab(){
     if(!grab)return;const {p,moved,id}=grab;grab=null;
     if(p.el.hasPointerCapture(id))p.el.releasePointerCapture(id);
-    if(!moved)activate(p);else if(p.kind==='rice'&&atFace(p))beginEat(p);wake();
+    if(!moved)activate(p);else if(canAutoEat(p))beginEat(p);wake();
   }
   function nativePointer(xy){if(grab&&typeof xy[2]==='boolean'){if(xy[2])moveGrab(xy[0],xy[1]);else releaseGrab();}}
   function remove(p){p.el.remove();const i=bodies.indexOf(p);if(i>=0)bodies.splice(i,1);anchorStack();}
@@ -121,7 +123,7 @@
     // Bottom-up order resolves supporting bodies before the nested bowl resting on them.
     const ordered=[...bodies].sort((a,b)=>b.y+b.h-a.y-a.h);
     for(const p of ordered){
-      if(p.kind==='rice'&&p.offered&&!p.eating&&atFace(p))beginEat(p);
+      if(p.offered&&!p.eating&&canAutoEat(p))beginEat(p);
       if(grab?.p===p)continue;
       if(p.onHead){p.angle+=p.spin*dt;p.spin+=(-p.angle*35-p.spin*9)*dt;render(p);continue;}
       if(p.eating){
@@ -164,6 +166,11 @@
   function clear(silent=false){grab=null;ignore=true;bodies.splice(0).forEach(p=>p.el.remove());cancelAnimationFrame(raf);raf=0;previous=0;accumulator=0;if(!silent)feedback();}
   function sync(next) {
     const old=pet;pet=next;
+    for(const p of bodies)if(p.kind==='rice'){
+      p.el.title=riceTitle();
+      // Changing the switch must not turn an old throw into a new feeding gesture.
+      if(next.riceAutoEat===false)p.offered=false;
+    }
     syncShields();
     if(old&&old.monitor!==next.monitor)clear(!!next.action&&next.action!=="clear");
     else if(old){

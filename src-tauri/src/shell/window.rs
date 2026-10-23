@@ -93,7 +93,7 @@ pub fn create_widget_window(app: &AppHandle, visible: bool) -> Result<WebviewWin
     .transparent(true)
     .shadow(false)
     .decorations(false)
-    .always_on_top(true)
+    .always_on_top(crate::companion::get_companion_settings().always_on_top)
     .skip_taskbar(true)
     .resizable(false)
     .visible(visible)
@@ -120,6 +120,16 @@ pub fn create_widget_window(app: &AppHandle, visible: bool) -> Result<WebviewWin
     }
 
     builder.build().map_err(|e| e.to_string())
+}
+
+/// Keep the owned tableware and pet in the same z-order band without showing or focusing them.
+pub fn apply_widget_topmost(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    for label in [WIDGET_WINDOW_LABEL, "physics"] {
+        if let Some(window) = app.get_webview_window(label) {
+            window.set_always_on_top(enabled).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
 }
 
 /// 显示 / 隐藏桌宠：写入配置 + 切换窗口可见性 + 同步托盘勾选，三处一次完成。

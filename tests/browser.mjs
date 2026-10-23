@@ -19,6 +19,7 @@ await page.addInitScript(()=>{
   window.__TAURI__={event:{listen:async(name,fn)=>{(window.testListeners[name]??=[]).push(fn);return()=>{};}},core:{invoke:async(cmd,arg)=>{
     if(!['get_cursor_position','set_ignore_cursor_events'].includes(cmd))window.testCalls.push(cmd);
     if(cmd==='sync_physics'&&arg?.action)window.testActions.push(arg.action);
+    if(cmd==='sync_physics')window.testPet=arg.pet;
     if(cmd==='get_config')return window.testConfig;
     if(cmd==='get_companion_settings')return window.testSettings;
     if(cmd==='list_system_fonts'){
@@ -65,6 +66,10 @@ try{
   await page.evaluate(()=>{testSettings.fontScale=1;__emit('companion-settings-changed',testSettings);DSW.widgetConfig.applyScale(1.5);DSW.bubble.hideBubble();});
   await page.evaluate(()=>__emit('pet-action','feed'));
   assert.ok(await page.evaluate(()=>testCalls.includes('sync_physics')));
+  await page.evaluate(()=>{testSettings.riceAutoEat=false;__emit('companion-settings-changed',testSettings);DSW.interactions.action('feed');});
+  await page.waitForFunction(()=>testPet.riceAutoEat===false);
+  await page.evaluate(()=>{testSettings.riceAutoEat=true;__emit('companion-settings-changed',testSettings);DSW.interactions.action('feed');});
+  await page.waitForFunction(()=>testPet.riceAutoEat===true);
   await page.evaluate(()=>{DSW.bubble.showDialogueLine('正在说话，请先等我说完');clearTimeout(DSW.flags.bubbleTimer);testEvents.push({id:'test-1',source:'Codex',kind:'turn',model:'test-model',tokens:{input:1600,output:240,cached:800,reasoning:100},cost:null,at:new Date().toISOString()});});
   await page.waitForFunction(()=>testEvents.length===0);
   assert.equal(await page.locator('.usage-mode').count(),0,'usage waits for existing dialogue instead of covering it');
@@ -183,6 +188,39 @@ try{
   const fallback=await physics.locator('.tableware.rice').boundingBox();await physics.mouse.move(fallback.x+fallback.width/2,fallback.y+fallback.height*.22);await physics.mouse.down();
   assert.ok(await physics.evaluate(()=>{const p=WhalePhysics.bodies[0],f=WhalePhysics.face();p.el.releasePointerCapture(1);WhalePhysics.nativePointer([f.x,f.y,true]);return p.eating>0;}),'native held cursor fallback feeds after DOM pointer capture loss');
   await physics.mouse.up();await physics.evaluate(()=>WhalePhysics.clear());
+  for(const group of ['小鲸鱼','Claude-Chibi','GLM-Chibi','GPT-Chibi','Grok-Chibi','Qwen-Chibi','Gemini-Chibi','Kimi-Chibi'])for(const left of [false,true]){
+    await physics.evaluate(({group,left})=>{
+      WhalePhysics.sync({x:500,y:300,width:240,height:240,left,group,riceAutoEat:false,sound:false,floor:900,monitor:'test',action:'feed'});
+      for(let i=0;i<500;i++)WhalePhysics.simulate(1/120);
+    },{group,left});
+    const b=await physics.locator('.tableware.rice').boundingBox();
+    assert.match(await physics.locator('.tableware.rice').getAttribute('title'),/已关闭/);
+    await physics.mouse.move(b.x+b.width*.5,b.y+b.height*.22);await physics.mouse.down();
+    const f=await physics.evaluate(()=>WhalePhysics.face());await physics.mouse.move(f.x,f.y,{steps:6});
+    assert.ok(await physics.evaluate(()=>{const p=WhalePhysics.bodies[0];return WhalePhysics.atFace(p)&&p.eating===0;}),'disabled DOM drag reaches mouth without feeding '+group);
+    assert.ok(await physics.evaluate(()=>{
+      const p=WhalePhysics.bodies[0],f=WhalePhysics.face();WhalePhysics.nativePointer([f.x,f.y,true]);
+      for(let i=0;i<20;i++)WhalePhysics.simulate(1/120);
+      WhalePhysics.nativePointer([f.x,f.y,false]);return p.eating===0;
+    }),'native drag, simulation and release respect disabled switch '+group);
+    await physics.mouse.up();
+    await physics.locator('.tableware.rice').focus();await physics.keyboard.press('Enter');
+    assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'explicit keyboard feeding still works '+group);
+    await physics.evaluate(()=>WhalePhysics.clear());
+  }
+  await physics.evaluate(()=>{
+    WhalePhysics.sync({x:500,y:300,width:240,height:240,left:false,riceAutoEat:false,sound:false,floor:900,monitor:'test',action:'feed'});
+    for(let i=0;i<500;i++)WhalePhysics.simulate(1/120);
+  });
+  await physics.locator('.tableware.rice').click();
+  assert.ok(await physics.evaluate(()=>WhalePhysics.bodies[0].eating>0),'explicit click still feeds with automatic feeding disabled');
+  await physics.evaluate(()=>{
+    WhalePhysics.sync({x:500,y:300,width:240,height:240,left:false,riceAutoEat:true,sound:false,floor:900,monitor:'test'});
+    for(let i=0;i<240;i++)WhalePhysics.simulate(1/120);
+  });
+  assert.equal(await physics.locator('.tableware.pot').count(),1,'live toggle does not interrupt eating or consume the bowl');
+  await physics.evaluate(()=>WhalePhysics.clear());
+  console.log('PASS: automatic feeding switch, all eight pets mirrored, DOM/native dragging, release, simulation and explicit feeding.');
   const bubbleShield=await page.evaluate(()=>{DSW.magpie.interrupt();DSW.bubble.showDialogueLine('气泡始终在餐具上方');return true;});
   await page.waitForTimeout(650);
   const shields=await page.evaluate(()=>DSW.interactions.bubbleShields());assert.ok(shields.length>=3,'bubble shape and both tails protected');
@@ -282,6 +320,14 @@ try{
   await page.locator('#companionPlacement').selectOption('above');await page.waitForFunction(()=>testSettings.notificationPlacement==='above');
   await page.screenshot({path:'tests/artifacts/settings-2.3.png',fullPage:true});
   await page.getByRole('button',{name:'桌宠外观',exact:true}).click();
+  assert.equal(await page.locator('#companionAlwaysOnTop').isChecked(),true);
+  assert.equal(await page.locator('#companionRiceAutoEat').isChecked(),true);
+  await page.locator('#companionAlwaysOnTop').uncheck();await page.waitForFunction(()=>testSettings.alwaysOnTop===false);
+  await page.locator('#companionRiceAutoEat').uncheck();await page.waitForFunction(()=>testSettings.riceAutoEat===false);
+  assert.equal(await page.evaluate(()=>testSettings.riceOnCompletion),true,'reward setting independent of automatic eating');
+  await page.screenshot({path:'tests/artifacts/interaction-switches-2.8.2.png',fullPage:true});
+  await page.locator('#companionAlwaysOnTop').check();await page.waitForFunction(()=>testSettings.alwaysOnTop===true);
+  await page.locator('#companionRiceAutoEat').check();await page.waitForFunction(()=>testSettings.riceAutoEat===true);
   assert.ok(await page.getByRole('heading',{name:'挂件配置',exact:true}).isVisible());
   await page.locator('#roleSoundModel').selectOption('Claude-Chibi');
   await page.locator('#roleSoundEnabled').uncheck();await page.waitForFunction(()=>testSettings.characterSoundEnabled['Claude-Chibi']===false);

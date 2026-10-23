@@ -1,6 +1,11 @@
 (function (DSW) {
   "use strict";
   let count=0,busy=false,stopped=false;
+  let riceAutoEat=true,settingsChanged=false;
+  const settingsReady=DSW.invoke?.("get_companion_settings").then(s=>{if(!settingsChanged)riceAutoEat=s.riceAutoEat!==false;}).catch(()=>{});
+  window.__TAURI__?.event?.listen("companion-settings-changed",e=>{
+    settingsChanged=true;riceAutoEat=e.payload.riceAutoEat!==false;if(count)sync();
+  });
   function bubbleShields(){
     const shapes=[];
     for(const el of DSW.dom.bubbleBox.querySelectorAll('svg path,svg ellipse')){
@@ -17,8 +22,10 @@
   function speak(text){DSW.bubble.showDialogueLine(text);DSW.expression.resetIdle();}
   async function sync(action) {
     if(stopped||!DSW.invoke||busy&&!action)return;
-    busy=true;const r=DSW.dom.img.getBoundingClientRect();
-    try{await DSW.invoke("sync_physics",{pet:{x:r.x,y:r.y,width:r.width,height:r.height,left:DSW.state.h==="left",group:DSW.flags.widgetBody,shields:bubbleShields(),characterSound:DSW.characterSound?.handles()||false,sound:!!DSW.flags.soundOn,volume:DSW.flags.soundVol||0},action:action||null});}
+    busy=true;await settingsReady;
+    if(stopped){busy=false;return;}
+    const r=DSW.dom.img.getBoundingClientRect();
+    try{await DSW.invoke("sync_physics",{pet:{x:r.x,y:r.y,width:r.width,height:r.height,left:DSW.state.h==="left",group:DSW.flags.widgetBody,shields:bubbleShields(),riceAutoEat,characterSound:DSW.characterSound?.handles()||false,sound:!!DSW.flags.soundOn,volume:DSW.flags.soundVol||0},action:action||null});}
     catch(e){if(action&&action!=="reward")speak("餐具窗口暂时不可用，请重启桌宠再试。");else console.warn("自动掉饭暂不可用",String(e));}
     finally{busy=false;}
   }

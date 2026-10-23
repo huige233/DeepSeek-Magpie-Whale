@@ -8,7 +8,7 @@ pub fn create(app: &AppHandle, owner: &WebviewWindow) -> tauri::Result<()> {
         // Windows owned popups stay above their owner even when the pet gains focus.
         .parent(owner)?
         .title("Whale tableware").transparent(true).decorations(false).shadow(false)
-        .always_on_top(true).skip_taskbar(true).focused(false).resizable(false)
+        .always_on_top(crate::companion::get_companion_settings().always_on_top).skip_taskbar(true).focused(false).resizable(false)
         .visible(false).inner_size(625.0, 625.0).build()?;
     overlay.set_ignore_cursor_events(true)?;
     Ok(())
@@ -16,7 +16,7 @@ pub fn create(app: &AppHandle, owner: &WebviewWindow) -> tauri::Result<()> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, #[serde(default)] group:String, #[serde(default)] shields:Vec<Shield>, #[serde(default)] character_sound: bool, sound: bool, volume: f64 }
+pub struct PetRect { x: f64, y: f64, width: f64, height: f64, left: bool, #[serde(default)] group:String, #[serde(default)] shields:Vec<Shield>, #[serde(default)] character_sound: bool, rice_auto_eat: bool, sound: bool, volume: f64 }
 
 #[derive(Deserialize,Serialize)]
 pub struct Shield {d:String,matrix:[f64;6],stroke:f64}
@@ -48,7 +48,7 @@ pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>)
         "y": (pos.y as f64 + pet.y * sf - origin.y as f64) / osf,
         "width": pet.width * sf / osf, "height": pet.height * sf / osf,
         "left": pet.left, "characterSound": pet.character_sound, "sound": pet.sound, "volume": pet.volume,
-        "group":pet.group,"shields":shields,
+        "group":pet.group,"shields":shields,"riceAutoEat":pet.rice_auto_eat,
         "floor": (monitor.work_area().position.y as f64 + monitor.work_area().size.height as f64 - origin.y as f64) / osf,
         "monitor": format!("{},{}",origin.x,origin.y), "action": action
     });

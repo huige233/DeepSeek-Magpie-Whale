@@ -15,7 +15,7 @@
     <div id="companionAccounts" class="companion-accounts"></div>
     <label class="companion-toggle"><input type="checkbox" id="companionNotify">整轮对话结束后推送 Token / 费用</label>
     <label class="companion-toggle"><input type="checkbox" id="companionRice">显示整轮 Token 提示时，掉落一份大白饭</label>
-    <p class="companion-note">默认关闭。仅成功完成一轮并自动展示用量时掉一份；手动查看历史、中断、失败不掉饭。等待原台词结束，白饭落在角色前面，点击或送到脸前即吃，无需松手。已有 12 件餐具时跳过，不覆盖用量提示。</p>
+    <p class="companion-note">默认关闭。仅成功完成一轮并自动展示用量时掉一份；手动查看历史、中断、失败不掉饭。等待原台词结束，白饭落在角色前面；点击可吃，送到嘴边是否自动吃由「桌宠外观」设置决定。已有 12 件餐具时跳过，不覆盖用量提示。</p>
     <label class="companion-toggle"><input type="checkbox" id="companionCodex">读取本机 Codex 的整轮结束事件（可关闭）</label>
     <p class="companion-note">一次用户输入到 Codex 最终完成算一轮；中间的工具调用、多次模型请求不弹提示。只读本机用量日志，不读取密钥。关闭后仍显示 Magpie 额度，但不伪造整轮通知。费用仅在 Magpie 完整记录与本轮用量匹配时显示。</p>
     <label for="companionPlacement">用量提示位置</label><select id="companionPlacement"><option value="inside">肥鱼对话气泡里面（默认）</option><option value="above">气泡上方（空间不足时放回气泡内）</option></select><p class="companion-note">自动提示等待当前台词结束，不遮盖气泡。完整缓存、推理用量可在下方历史中查看。</p>
@@ -44,6 +44,14 @@
   const nav=document.createElement("nav");nav.className="companion-tabs";nav.setAttribute("aria-label","设置分类");
   const appearance=Array.from(content.children).find(e=>e.querySelector("h2")?.textContent==="挂件配置");
   const system=Array.from(content.children).find(e=>e.querySelector("h2")?.textContent==="系统配置");
+  const interactionPanel=document.createElement("section");interactionPanel.className="card companion-panel";
+  interactionPanel.innerHTML=`<h2>桌面显示与喂饭</h2>
+    <label class="companion-toggle"><input type="checkbox" id="companionAlwaysOnTop">始终显示在其他窗口上方（置顶）</label>
+    <p class="companion-note">桌宠和餐具一起置顶，不抢键盘焦点；关闭后可被普通窗口遮住。不会强制显示已隐藏的桌宠，不保证覆盖独占全屏、系统安全界面或 Win+D 的显示桌面操作。</p>
+    <label class="companion-toggle"><input type="checkbox" id="companionRiceAutoEat">白饭送到嘴边自动吃（无需再点击或松手）</label>
+    <p class="companion-note">只对主动拖动送饭生效，落地或碰头不会吃。关闭后只能点击白饭，或选中白饭按 Enter / 空格喂食。已开始的进食不会中断，吃完仍留下铁盆。两项默认开启以延续旧版行为。</p>
+    <p id="companionInteractionStatus" class="companion-status" role="status"></p>`;
+  content.appendChild(interactionPanel);
   const fontPanel=document.createElement("section");fontPanel.className="card companion-panel";
   fontPanel.innerHTML=`<h2>气泡字体与角色台词</h2>
     <label class="companion-toggle"><input type="checkbox" id="characterDialogue">七位 AI 娘使用角色专属台词</label>
@@ -113,7 +121,7 @@
     $("rolePreview-"+cue).onclick=async()=>{try{window.WhaleComponentAudio.stop();const ok=await roleAudio.play($("roleSoundModel").value,cue,.5,$("roleSound-"+cue).value);$("roleSoundStatus").textContent=ok?"正在试听 · 50% 音量":"此项已静音";}catch(e){$("roleSoundStatus").textContent="无法播放，请重新替换："+String(e);}};
     $("roleImport-"+cue).onclick=async()=>{const button=$("roleImport-"+cue),group=$("roleSoundModel").value;button.disabled=true;try{const path=await invoke("pick_audio_file");if(!path)return;const choice=await invoke("import_component_sound",{event:roleAudio.model(group).toLowerCase()+"_"+cue,path});(roleSounds[group]??={})[cue]=choice;renderRole();await save();$("roleSoundStatus").textContent="已替换 "+group+" 的音效，文件已复制到本软件";}catch(e){$("roleSoundStatus").textContent="替换失败："+String(e);}finally{button.disabled=false;}};
   }
-  const groups=[[panel,sourcePanel],[appearance,soundPanel,rolePanel],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
+  const groups=[[panel,sourcePanel],[interactionPanel,appearance,soundPanel,rolePanel],[fontPanel,$("dialogueCard"),$("bubbleCard")],[system]];
   ["额度概览","桌宠外观","气泡与台词","进阶设置"].forEach((name,i)=>{
     const b=document.createElement("button");b.type="button";b.textContent=name;
     b.onclick=()=>{groups.forEach((g,j)=>g.forEach(e=>{if(e)e.hidden=i!==j;}));Array.from(nav.children).forEach((e,j)=>{e.classList.toggle("is-active",i===j);e.setAttribute("aria-current",i===j?"page":"false");});};nav.appendChild(b);
@@ -154,9 +162,9 @@
     if(!$("companionFontScale").reportValidity()||!$("companionPort").reportValidity()||!$("companionSeconds").reportValidity()||Object.keys(sources).some(key=>!$("sourceInterval-"+key).reportValidity()))return;
     saving=true;
     try {
-      settings=await invoke("save_companion_settings",{settings:{...settings,usageSources:Object.fromEntries(Object.keys(sources).map(key=>[key,{enabled:$("source-"+key).checked,path:$("sourcePath-"+key).value,mode:$("sourceMode-"+key).value,intervalSeconds:Number($("sourceInterval-"+key).value)}])),characterLines:JSON.parse(JSON.stringify(roleLines)),characterSounds:JSON.parse(JSON.stringify(roleSounds)),characterSoundEnabled:{...roleEnabled},accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,characterDialogue:$("characterDialogue").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
-      $("companionSaveStatus").textContent="已保存，桌宠立即生效";$("companionFontStatus").textContent="字体已保存，桌宠立即生效";H.applyFont(settings,document);await refresh();return true;
-    }catch(e){$("companionSaveStatus").textContent="保存失败："+String(e);$("companionFontStatus").textContent="保存失败："+String(e);}finally{saving=false;if(saveAgain){saveAgain=false;save();}}
+      settings=await invoke("save_companion_settings",{settings:{...settings,alwaysOnTop:$("companionAlwaysOnTop").checked,riceAutoEat:$("companionRiceAutoEat").checked,usageSources:Object.fromEntries(Object.keys(sources).map(key=>[key,{enabled:$("source-"+key).checked,path:$("sourcePath-"+key).value,mode:$("sourceMode-"+key).value,intervalSeconds:Number($("sourceInterval-"+key).value)}])),characterLines:JSON.parse(JSON.stringify(roleLines)),characterSounds:JSON.parse(JSON.stringify(roleSounds)),characterSoundEnabled:{...roleEnabled},accountId:$("companionAccount").value,notifications:$("companionNotify").checked,riceOnCompletion:$("companionRice").checked,characterDialogue:$("characterDialogue").checked,codexEnabled:$("companionCodex").checked,port:Number($("companionPort").value),notificationSeconds:Number($("companionSeconds").value),notificationPlacement:$("companionPlacement").value,fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100,componentSounds:Object.fromEntries(Object.keys(soundEvents).map(key=>[key,$("sound-"+key).value]))}});
+      $("companionInteractionStatus").textContent="已保存，立即生效";$("companionSaveStatus").textContent="已保存，桌宠立即生效";$("companionFontStatus").textContent="字体已保存，桌宠立即生效";H.applyFont(settings,document);await refresh();return true;
+    }catch(e){$("companionInteractionStatus").textContent="保存失败："+String(e);$("companionSaveStatus").textContent="保存失败："+String(e);$("companionFontStatus").textContent="保存失败："+String(e);}finally{saving=false;if(saveAgain){saveAgain=false;save();}}
   }
   function status(r) {
     for(const key of Object.keys(sources))if(r.sourceStatus?.[key])$("sourceStatus-"+key).textContent=r.sourceStatus[key];
@@ -166,7 +174,7 @@
     r.history.forEach(n=>{const row=text($("companionHistory"),"article","");text(row,"strong",H.noticeTitle(n)+" · "+H.noticeTotal(n));text(row,"div",n.model+" · "+H.noticeCost(n));text(row,"small",new Date(n.at).toLocaleString()+" · "+(n.usageUnavailable?"IDE 未提供 Token 计数":("输入 "+H.number(n.tokens.input)+" / 输出 "+H.number(n.tokens.output)+" / "+H.noticeBreakdown(n))));});
   }
   $("companionRefresh").onclick=refresh;$("companionSave").onclick=save;
-  ["characterDialogue","companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
+  ["companionAlwaysOnTop","companionRiceAutoEat","characterDialogue","companionAccount","companionNotify","companionRice","companionCodex","companionSeconds","companionPlacement","companionFont","companionFontScale"].forEach(id=>$(id).onchange=save);
   for(const key of Object.keys(sources))for(const prefix of ["source-","sourceMode-","sourcePath-","sourceInterval-"])$(prefix+key).onchange=save;
   function previewFont(){H.applyFont({fontFamily:$("companionFont").value,fontScale:Number($("companionFontScale").value)/100},document);}
   let installedFonts=[],fontListLoaded=false,fontListLoading=false,fontListError="";
@@ -215,7 +223,7 @@
     for(const key of Object.keys(sources)){const v=s.usageSources?.[key]||{};$("source-"+key).checked=!!v.enabled;$("sourcePath-"+key).value=v.path||"";$("sourceInterval-"+key).value=v.intervalSeconds||5;$("sourceMode-"+key).value=key==="ccswitch"?"stage":(key==="cursor"||key==="trae")?"turn":v.mode||"turn";}
     for(const key of Object.keys(soundEvents))setSound(key,s.componentSounds?.[key]||(key==="pot_land"?"anvil":"default"));
     roleSounds=JSON.parse(JSON.stringify(s.characterSounds||{}));roleEnabled={...(s.characterSoundEnabled||{})};renderRole();
-    settings=s;$("characterDialogue").checked=s.characterDialogue!==false;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
+    settings=s;$("companionAlwaysOnTop").checked=s.alwaysOnTop!==false;$("companionRiceAutoEat").checked=s.riceAutoEat!==false;$("characterDialogue").checked=s.characterDialogue!==false;$("companionFont").value=s.fontFamily||"Microsoft YaHei UI";$("companionFontScale").value=Math.round((s.fontScale||1)*100);H.applyFont(s,document);$("companionPlacement").value=s.notificationPlacement||"inside";$("companionNotify").checked=s.notifications;$("companionRice").checked=!!s.riceOnCompletion;$("companionCodex").checked=s.codexEnabled;$("companionPort").value=s.port;$("companionSeconds").value=s.notificationSeconds;refresh();
     invoke("get_companion_history").then(status);
     loadSystemFonts();
   }).catch(e=>{$("quotaStatus").textContent=String(e);});

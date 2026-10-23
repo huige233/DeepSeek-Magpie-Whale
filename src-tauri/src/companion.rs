@@ -15,6 +15,8 @@ pub struct Settings {
     pub port: u16,
     pub notifications: bool,
     pub rice_on_completion: bool,
+    pub always_on_top: bool,
+    pub rice_auto_eat: bool,
     pub character_dialogue: bool,
     pub codex_enabled: bool,
     pub notification_seconds: u32,
@@ -28,7 +30,7 @@ pub struct Settings {
     pub character_lines: HashMap<String, HashMap<String, Vec<String>>>,
 }
 impl Default for Settings {
-    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new(), character_sounds: HashMap::new(), character_sound_enabled: HashMap::new(), usage_sources: HashMap::new(), character_lines: HashMap::new() } }
+    fn default() -> Self { Self { account_id: String::new(), port: 3425, notifications: true, rice_on_completion: false, always_on_top: true, rice_auto_eat: true, character_dialogue: true, codex_enabled: true, notification_seconds: 12, notification_placement: "inside".into(), font_family: "Microsoft YaHei UI".into(), font_scale: 1.0, component_sounds: HashMap::new(), character_sounds: HashMap::new(), character_sound_enabled: HashMap::new(), usage_sources: HashMap::new(), character_lines: HashMap::new() } }
 }
 fn settings_path() -> PathBuf { app_data_dir().join("magpie.json") }
 #[tauri::command]
@@ -50,7 +52,17 @@ pub fn save_companion_settings(app: tauri::AppHandle, mut settings: Settings) ->
         cues.retain(|cue,choice| crate::character::valid_cue(cue) && crate::component_audio::valid_choice(choice) && choice != "anvil");
         crate::character::valid_group(group)
     });
-    fs::write(settings_path(), serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    let bytes = serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?;
+    let previous = get_companion_settings().always_on_top;
+    let changed = previous != settings.always_on_top;
+    let result = (|| {
+        if changed { crate::shell::window::apply_widget_topmost(&app, settings.always_on_top)?; }
+        fs::write(settings_path(), bytes).map_err(|e| e.to_string())
+    })();
+    if let Err(error) = result {
+        if changed { let _ = crate::shell::window::apply_widget_topmost(&app, previous); }
+        return Err(error);
+    }
     let _ = app.emit("companion-settings-changed", &settings);
     Ok(settings)
 }
@@ -347,12 +359,22 @@ mod tests {
         assert_eq!(s.font_family,"Microsoft YaHei UI");assert_eq!(s.font_scale,1.0);
         assert!(s.codex_enabled);assert_eq!(s.notification_placement,"inside");
         assert!(!s.rice_on_completion);
+        assert!(s.always_on_top);assert!(s.rice_auto_eat);
         assert!(s.character_dialogue);
         assert!(s.character_sounds.is_empty());assert!(s.character_sound_enabled.is_empty());
         let custom: Settings=serde_json::from_value(json!({"characterDialogue":false,"accountId":"keep"})).unwrap();
         assert!(!custom.character_dialogue);assert_eq!(custom.account_id,"keep");
         let enabled: Settings=serde_json::from_value(json!({"riceOnCompletion":true})).unwrap();
         assert!(enabled.rice_on_completion);
+    }
+    #[test]
+    fn interaction_switches_round_trip_without_changing_other_settings() {
+        let old = json!({"accountId":"keep", "fontFamily":"KaiTi", "riceOnCompletion":true,
+            "alwaysOnTop":false, "riceAutoEat":false, "characterSounds":{"Kimi-Chibi":{"feed":"none"}}});
+        let settings: Settings = serde_json::from_value(old.clone()).unwrap();
+        assert!(!settings.always_on_top && !settings.rice_auto_eat);
+        let saved = serde_json::to_value(settings).unwrap();
+        for (key,value) in old.as_object().unwrap() { assert_eq!(&saved[key], value); }
     }
     fn event(kind: &str, p: Value) -> Value { json!({"timestamp":"2026-10-17T12:00:00Z", "type": kind, "payload":p}) }
     fn boot() -> DateTime<Utc> { "2026-10-17T11:00:00Z".parse().unwrap() }
