@@ -10,17 +10,17 @@
 
 ## 逐角色参考来源
 
-来源站点为用户指定的 [AI 娘社区作品站](https://xn--pssy23gqgbz2d718b.com/)。下表区分站点投稿者与原作者；“站点允许展示/下载”的记录不扩写为通用再分发授权。原页面的投稿标签也不等于本项目重新核验了全部权利。
+来源站点为用户指定的 [蓝色大肥鱼](https://xn--pssy23gqgbz2d718b.com/)。下表区分站点投稿者与原作者，署名已对照原页面的 `ImageObject.creditText`；“站点允许展示/下载”的记录不扩写为通用再分发授权。原页面的投稿标签也不等于本项目重新核验了全部权利。包内 `character-art/reference-credits.json` 保留此次核对到的公开署名与许可链接。
 
 | 角色 / 图片组目录 | 参考作品 | 署名与原始记录 |
 | --- | --- | --- |
 | Claude / `Claude-Chibi` | [橙发看书](https://xn--pssy23gqgbz2d718b.com/works/owner-picks202609190002.html) | 站长自用；原记录作者 `lmy414`，站长自行用 AI 生成。原许可记录为允许本站展示与下载，未记录额外通用许可。 |
-| GLM / `GLM-Chibi` | [代码在自己上传](https://xn--pssy23gqgbz2d718b.com/works/glm202609220001.html) | 站点投稿者“代码在自己”；标注网络整理，原作者未记录。原记录为投稿者同意收录与下载，未记录额外通用许可。 |
+| GLM / `GLM-Chibi` | [代码在自己上传](https://xn--pssy23gqgbz2d718b.com/works/glm202609220001.html) | 站点投稿者 `Yasenbaka`；标注网络整理，原作者未记录。原记录为投稿者同意收录与下载，未记录额外通用许可。 |
 | GPT / `GPT-Chibi` | [白发中国结](https://xn--pssy23gqgbz2d718b.com/works/owner-picks202609190003.html) | 站长自用；原记录作者 `lmy414`，站长自行用 AI 生成。原许可记录为允许本站展示与下载，未记录额外通用许可。 |
-| Grok / `Grok-Chibi` | [金发双马尾参考作品](https://xn--pssy23gqgbz2d718b.com/works/grok202609210001.html) | 站点投稿者“GPT画的”；原记录标注自行创作或生成，投稿者将参考作品标注为 CC0。此标注来自投稿信息，并非将其余六组素材统一列为 CC0。 |
-| Qwen / `Qwen-Chibi` | [紫发折扇 · Qwen 娘半身像](https://xn--pssy23gqgbz2d718b.com/works/qwen202610120001.html) | 原记录未提供作者与明确许可；本次未能重新读取原页面，保留原始链接，不补造署名或授权。 |
-| Gemini / `Gemini-Chibi` | [Gemini 娘：小基基…](https://xn--pssy23gqgbz2d718b.com/works/gemini202610110001.html) | 站点投稿者 `Alley_Perl`；原页面标注网络整理，未记录原作者及明确通用许可。 |
-| Kimi / `Kimi-Chibi` | [Kimi娘：眼镜一推，彩虹就绪](https://xn--pssy23gqgbz2d718b.com/works/kimi202610150001.html) | 站点投稿者“江江江江江江”；原页面标注网络整理，未记录原作者及明确通用许可。 |
+| Grok / `Grok-Chibi` | [金发双马尾参考作品](https://xn--pssy23gqgbz2d718b.com/works/grok202609210001.html) | 站点投稿者 `NakashimaYuki0912`；原记录的生成备注为“GPT画的”，标注自行创作或生成，投稿者将参考作品标注为 CC0。此标注来自投稿信息，并非将其余六组素材统一列为 CC0。 |
+| Qwen / `Qwen-Chibi` | [紫发折扇 · Qwen 娘半身像](https://xn--pssy23gqgbz2d718b.com/works/qwen202610120001.html) | 站点图片署名 `c'x`；原页面注明原作者未标注、授权状态不明。 |
+| Gemini / `Gemini-Chibi` | [Gemini 娘：小基基…](https://xn--pssy23gqgbz2d718b.com/works/gemini202610110001.html) | 站点图片署名“库莉茜耶”；原页面注明原作者未标注、授权状态不明。 |
+| Kimi / `Kimi-Chibi` | [Kimi娘：眼镜一推，彩虹就绪](https://xn--pssy23gqgbz2d718b.com/works/kimi202610150001.html) | 站点图片署名“kimi本米”；原页面注明原作者未标注、授权状态不明。 |
 
 参考作品、衍生形象、商标及第三方资源权利仍归相应权利人。项目代码的 MIT 许可证不构成对这些资源的额外授权；未记录许可的条目保留该状态，不标为 MIT、CC0 或官方授权。
 
