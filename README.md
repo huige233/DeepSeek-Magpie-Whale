@@ -2,6 +2,14 @@
 
 ## Magpie 交互版 2.8.3（2026-10-25）
 
+### 可选七位 AI 娘便携包
+
+[v2.8.3 Release](https://github.com/huige233/DeepSeek-Magpie-Whale/releases/tag/v2.8.3) 另提供 `Portable-With-Characters.zip`，包含 Claude、GLM、GPT、Grok、Qwen、Gemini、Kimi 七组主图、表情图集和注册元数据，以及相同的 2.8.3 程序。解压后运行，在设置的图片组中切换角色即可；首次启动使用程序默认设置。
+
+包内 `data` 仅包含公开提供的 `pic/<角色>-Chibi/` 素材，不带个人设置、账号、密钥、会话、日志、自定义音效或系统字体。升级已有版本时退出程序，只替换 EXE 并合并需要的角色素材目录，保留自己的其他 `data` 文件。
+
+逐角色参考链接、署名及原页面许可标注见 [CHARACTER-SOURCES.md](CHARACTER-SOURCES.md)；包内保留相同说明和原始生成来源记录。参考图片由内置图像生成工具改编为统一桌宠格式，不是各模型官方形象；工具未公开具体模型版本。项目代码许可证不改变参考作品、美术、字体或商标的权利。
+
 ### 置顶恢复修复
 
 修复其他置顶窗口出现后，桌宠仍标记为置顶、实际却被盖住的问题。根据 Windows 窗口切换、显示和层级事件检查实际遮挡，必要时恢复桌宠及餐具层级；显示桌宠或保存置顶设置时也重新应用实际层级。无需定时抢前台，不改变窗口位置、大小或键盘焦点，关闭置顶后停止恢复，已隐藏或最小化的桌宠不会被唤出。餐具仍在角色上方，气泡透明遮挡保持不变。
@@ -51,7 +59,7 @@
 - 七位角色各有摸头、生气、吃饭三种原创合成短音效，共 21 个 WAV（非人物配音或游戏采样）。
 - 设置 → 桌宠外观 → 每位角色的互动音效，可分别开启/关闭角色、静音某个动作、导入替换与试听；实际互动遵循原总音量开关。
 - 右键喂饭、摸头、聊天、铁盆、清理和用量菜单随当前角色变化。
-- 音效生成脚本：`tools/generate_character_sounds.py`；来源说明：`frontend/assets/characters/audio/SOURCE.txt`。图像参考与许可仍见独立本地素材包，不上传个人设置或日志。
+- 音效生成脚本：`tools/generate_character_sounds.py`；来源说明：`frontend/assets/characters/audio/SOURCE.txt`。图像参考与许可标注见 `CHARACTER-SOURCES.md` 及可选角色便携包，不上传个人设置或日志。
 
 - 点击额度保留原版三行气泡，字体有边界保护。
 - 配置 > 气泡与台词中可选择「使用教程同款」内置字体（星期八de電子日記 / XQBDDZRJ）、系统字体或输入字体名称，字号 80%–140%，实时应用。
@@ -299,6 +307,6 @@ This project is derived from the original DSH extension [DeepSeek-Balance-Whale-
 - 七套原创陪伴文案共 154 条，覆盖闲聊、摸头、害羞、生气、连点提醒、失落、回来、开饭、吃饱、疲惫。角色性格是桌宠创作设定，不代表模型实际能力或官方人设。
 - 设置 → 气泡与台词 →「七位 AI 娘使用角色专属台词」默认开启；关闭恢复用户原台词，不覆盖原自定义内容，肥鱼及其他图片组不受影响。
 - 修复高分辨率自定义主图点击蒙版未缩放的问题；防止旧角色的异步蒙版覆盖新角色。自动心情台词不打断 Token 提示。
-- 美术参考沿用 2.4.0 中注明的社区来源。表情包附原参考链接、署名/许可情况及生成提示词；图像不随公开源码上传，也不把代码许可证当成美术授权。
+- 美术参考沿用 2.4.0 中注明的社区来源。可选角色便携包附原参考链接、署名/许可情况及生成提示词；图像不随公开源码上传，也不把代码许可证当成美术授权。
 
 验证：`cargo test --manifest-path src-tauri/Cargo.toml --lib`；`node --test tests/companion.test.mjs tests/character-dialogue.test.mjs`；`node tests/browser.mjs`（需 Playwright/Edge）。设置 `WHALE_EXPRESSION_PACK` 为表情包的 `pic` 绝对目录，可加测 63 个实际渲染状态、自动三帧眨眼、镜像命中和专属台词。原生 smoke 测试需复制该素材包和测试音频到隔离 data，并用隔离 CODEX_HOME；不得对个人会话目录运行。smoke 中的用量核验是合成事件集成测试，不是用户真实对话目视核验。

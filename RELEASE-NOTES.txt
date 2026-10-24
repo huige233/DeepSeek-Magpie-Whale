@@ -1,5 +1,12 @@
 DeepSeek Magpie Whale 2.8.3 · Windows x64
 
+2.8.3 可选七位 AI 娘便携包
+Portable-With-Characters.zip 含 Claude、GLM、GPT、Grok、Qwen、Gemini、Kimi 主图、表情图集和注册元数据。
+data 仅包含 pic 下的角色素材；没有个人配置、账号、密钥、会话记录、日志、自定义音效或系统字体。
+在设置的图片组中选择角色。升级请只替换 EXE 并合并所需素材，保留自己的其他 data 文件。
+参考链接、署名和许可标注见 CHARACTER-SOURCES.md；原始生成来源记录保存在 character-art/character-sources.json。
+七位角色为社区参考形象的 AI 辅助改编，非模型官方形象；不把代码许可证当成美术授权。
+
 2.8.3 修复
 其他置顶窗口出现或窗口切换后，检测实际遮挡并恢复桌宠与餐具层级，修复置顶标志正常但仍被盖住的问题。
 显示桌宠、显示餐具与保存置顶设置时重新应用实际层级；不靠反复抢焦点维持显示。
