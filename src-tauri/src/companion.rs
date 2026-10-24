@@ -56,7 +56,7 @@ pub fn save_companion_settings(app: tauri::AppHandle, mut settings: Settings) ->
     let previous = get_companion_settings().always_on_top;
     let changed = previous != settings.always_on_top;
     let result = (|| {
-        if changed { crate::shell::window::apply_widget_topmost(&app, settings.always_on_top)?; }
+        crate::shell::window::apply_widget_topmost(&app, settings.always_on_top)?;
         fs::write(settings_path(), bytes).map_err(|e| e.to_string())
     })();
     if let Err(error) = result {

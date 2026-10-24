@@ -124,11 +124,13 @@ pub fn create_widget_window(app: &AppHandle, visible: bool) -> Result<WebviewWin
 
 /// Keep the owned tableware and pet in the same z-order band without showing or focusing them.
 pub fn apply_widget_topmost(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    super::topmost::set_enabled(enabled);
     for label in [WIDGET_WINDOW_LABEL, "physics"] {
         if let Some(window) = app.get_webview_window(label) {
             window.set_always_on_top(enabled).map_err(|e| e.to_string())?;
         }
     }
+    if enabled { super::topmost::request_refresh(app); }
     Ok(())
 }
 
@@ -160,6 +162,7 @@ pub fn apply_widget_visibility(app: &AppHandle, visible: bool) {
         if let Some(window) = handle.get_webview_window(WIDGET_WINDOW_LABEL) {
             if visible {
                 let _ = window.show();
+                super::topmost::request_refresh(&handle);
             } else {
                 let _ = window.hide();
             }

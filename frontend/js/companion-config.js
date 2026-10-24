@@ -47,7 +47,7 @@
   const interactionPanel=document.createElement("section");interactionPanel.className="card companion-panel";
   interactionPanel.innerHTML=`<h2>桌面显示与喂饭</h2>
     <label class="companion-toggle"><input type="checkbox" id="companionAlwaysOnTop">始终显示在其他窗口上方（置顶）</label>
-    <p class="companion-note">桌宠和餐具一起置顶，不抢键盘焦点；关闭后可被普通窗口遮住。不会强制显示已隐藏的桌宠，不保证覆盖独占全屏、系统安全界面或 Win+D 的显示桌面操作。</p>
+    <p class="companion-note">桌宠和餐具一起置顶，切换窗口或被其他置顶窗口遮住后自动恢复，不抢键盘焦点；关闭后允许其他窗口遮住。不会唤出已隐藏或最小化的桌宠，不保证覆盖独占全屏、系统安全界面或 Win+D 的显示桌面操作。</p>
     <label class="companion-toggle"><input type="checkbox" id="companionRiceAutoEat">白饭送到嘴边自动吃（无需再点击或松手）</label>
     <p class="companion-note">只对主动拖动送饭生效，落地或碰头不会吃。关闭后只能点击白饭，或选中白饭按 Enter / 空格喂食。已开始的进食不会中断，吃完仍留下铁盆。两项默认开启以延续旧版行为。</p>
     <p id="companionInteractionStatus" class="companion-status" role="status"></p>`;

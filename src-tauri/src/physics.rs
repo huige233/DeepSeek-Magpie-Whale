@@ -52,7 +52,10 @@ pub fn sync_physics(window: WebviewWindow, pet: PetRect, action: Option<String>)
         "floor": (monitor.work_area().position.y as f64 + monitor.work_area().size.height as f64 - origin.y as f64) / osf,
         "monitor": format!("{},{}",origin.x,origin.y), "action": action
     });
-    if action.as_deref().is_some_and(|a| a != "clear") { overlay.show().map_err(|e| e.to_string())?; }
+    if action.as_deref().is_some_and(|a| a != "clear") {
+        overlay.show().map_err(|e| e.to_string())?;
+        crate::shell::topmost::request_refresh(app);
+    }
     overlay.emit("physics-sync", geometry).map_err(|e| e.to_string())
 }
 

@@ -250,6 +250,7 @@ pub fn run() {
     app.run(move |app, event| {
         // 事件循环就绪后再创建配置窗口，避免在 setup 阶段与透明挂件窗口并发初始化导致白屏。
         if let tauri::RunEvent::Ready = event {
+            shell::topmost::start(app);
             #[cfg(feature = "native-smoke")]
             native_smoke::start(app);
             if !restore_session && (application::registry::config().get().api_key.is_empty() || !is_autostart) {
@@ -269,6 +270,9 @@ pub fn run() {
                     );
                 }
             });
+        }
+        if let tauri::RunEvent::Exit = event {
+            shell::topmost::stop();
         }
     });
 }
